@@ -2,6 +2,11 @@
 """
 CursorRules-MCP 验证器模块
 集成各种代码和文档验证工具
+
+Author: Mapoet
+Institution: NUS/STAR
+Date: 2025-01-23
+License: MIT
 """
 
 import asyncio

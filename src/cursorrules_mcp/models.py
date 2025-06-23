@@ -3,6 +3,11 @@ Core data models for CursorRules-MCP system.
 
 This module defines the fundamental data structures used throughout the system,
 including rules, knowledge items, contexts, and validation results.
+
+Author: Mapoet
+Institution: NUS/STAR
+Date: 2025-01-23
+License: MIT
 """
 
 from datetime import datetime

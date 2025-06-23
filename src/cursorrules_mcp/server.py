@@ -2,6 +2,11 @@
 """
 CursorRules-MCP 服务器实现
 基于Model Context Protocol提供规则管理和验证服务
+
+Author: Mapoet
+Institution: NUS/STAR
+Date: 2025-01-23
+License: MIT
 """
 
 import asyncio

@@ -2,6 +2,11 @@
 """
 CursorRules-MCP HTTP服务器实现
 支持MCP JSON-RPC协议通过HTTP/SSE传输
+
+Author: Mapoet
+Institution: NUS/STAR
+Date: 2025-01-23
+License: MIT
 """
 
 import asyncio

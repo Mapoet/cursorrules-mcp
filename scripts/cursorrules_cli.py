@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
 CursorRules-MCP 命令行工具启动脚本
+
+Author: Mapoet
+Institution: NUS/STAR
+Date: 2025-01-23
+License: MIT
 """
 
 import sys

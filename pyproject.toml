@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
 authors = [
-    { name = "cursorrules-mcp team", email = "team@cursorrules-mcp.dev" },
+    { name = "Mapoet", email = "mapoet.niphy@gmail.com" },
 ]
 keywords = [
     "llm",

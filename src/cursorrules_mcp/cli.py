@@ -2,6 +2,11 @@
 """
 CursorRules-MCP 命令行接口
 提供规则管理、验证和服务器控制的命令行工具
+
+Author: Mapoet
+Institution: NUS/STAR
+Date: 2025-01-23
+License: MIT
 """
 
 import asyncio

@@ -2,6 +2,11 @@
 """
 CursorRules-MCP HTTP服务器启动脚本
 支持通过HTTP/SSE协议提供MCP服务
+
+Author: Mapoet
+Institution: NUS/STAR
+Date: 2025-01-23
+License: MIT
 """
 
 import asyncio

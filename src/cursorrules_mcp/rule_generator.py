@@ -1,6 +1,11 @@
 """
 规则生成器
 用于创建丰富的规则库内容
+
+Author: Mapoet
+Institution: NUS/STAR
+Date: 2025-01-23
+License: MIT
 """
 
 import json

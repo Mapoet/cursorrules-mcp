@@ -2,6 +2,11 @@
 """
 CursorRules-MCP 配置管理模块
 提供系统配置、规则配置和环境设置管理
+
+Author: Mapoet
+Institution: NUS/STAR
+Date: 2025-01-23
+License: MIT
 """
 
 import os

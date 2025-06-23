@@ -2,6 +2,11 @@
 """
 CursorRules-MCP 规则引擎核心模块
 提供规则管理、搜索、验证和应用的完整功能
+
+Author: Mapoet
+Institution: NUS/STAR
+Date: 2025-01-23
+License: MIT
 """
 
 import asyncio

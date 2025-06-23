@@ -1,6 +1,11 @@
 """
 规则数据库管理模块
 提供规则的存储、版本管理、冲突检测等功能
+
+Author: Mapoet
+Institution: NUS/STAR
+Date: 2025-01-23
+License: MIT
 """
 
 import json

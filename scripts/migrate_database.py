@@ -2,6 +2,11 @@
 """
 规则库数据化迁移脚本
 执行完整的数据库迁移和规则生成
+
+Author: Mapoet
+Institution: NUS/STAR
+Date: 2025-01-23
+License: MIT
 """
 
 import sys

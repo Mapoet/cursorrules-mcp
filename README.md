@@ -231,4 +231,8 @@ python scripts/start_http_server.py --log-level DEBUG
 
 ## 开发团队
 
-CursorRules-MCP开发团队 
+**作者**: Mapoet  
+**邮箱**: Mapoet.Niphy@gmail.com
+**机构**: NUS/STAR  
+**日期**: 2025-01-23  
+**许可证**: MIT License 

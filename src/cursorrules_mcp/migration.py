@@ -1,6 +1,11 @@
 """
 数据库迁移工具
 将现有规则数据转换为新的数据库格式，并进行验证
+
+Author: Mapoet
+Institution: NUS/STAR
+Date: 2025-01-23
+License: MIT
 """
 
 import json
