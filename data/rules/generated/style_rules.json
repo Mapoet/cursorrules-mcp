@@ -1,0 +1,261 @@
+[
+  {
+    "rule_id": "CR-PY-STYLE-002",
+    "name": "Python导入语句规范",
+    "description": "Python导入语句应遵循PEP8规范：标准库、第三方库、本地模块分组，按字母排序",
+    "version": "1.0.0",
+    "author": "RuleGenerator",
+    "created_at": "2025-06-23 10:43:53.678896+00:00",
+    "updated_at": "2025-06-23 10:43:53.678898+00:00",
+    "rule_type": "style",
+    "languages": [
+      "python"
+    ],
+    "domains": [
+      "all"
+    ],
+    "task_types": [],
+    "content_types": [
+      "code"
+    ],
+    "tags": [
+      "python",
+      "pep8",
+      "imports",
+      "organization"
+    ],
+    "rules": [
+      {
+        "condition": "import_organization",
+        "guideline": "导入语句应分为三组：1)标准库 2)第三方库 3)本地模块，组间用空行分隔，组内按字母排序",
+        "priority": 8,
+        "examples": [
+          {
+            "good": "import os\nimport sys\n\nimport numpy as np\nimport pandas as pd\n\nfrom .models import CursorRule\nfrom .utils import helper_function",
+            "bad": "from .models import CursorRule\nimport numpy as np\nimport os\nfrom .utils import helper_function\nimport pandas as pd",
+            "explanation": "正确的导入顺序提高代码可读性和维护性"
+          }
+        ],
+        "pattern": null
+      }
+    ],
+    "applies_to": {
+      "file_patterns": [],
+      "project_types": [],
+      "contexts": []
+    },
+    "conflicts_with": [],
+    "overrides": [],
+    "validation": {
+      "tools": [
+        "isort",
+        "flake8"
+      ],
+      "severity": "warning",
+      "auto_fix": false,
+      "timeout": 30,
+      "custom_config": {},
+      "code_style": null,
+      "documentation": null,
+      "testing": null,
+      "custom_validators": []
+    },
+    "active": true,
+    "usage_count": 0,
+    "success_rate": 0.0
+  },
+  {
+    "rule_id": "CR-PY-TYPE-001",
+    "name": "Python类型注解标准",
+    "description": "Python函数和方法应包含完整的类型注解，包括参数和返回值类型",
+    "version": "1.0.0",
+    "author": "RuleGenerator",
+    "created_at": "2025-06-23 10:43:53.678963+00:00",
+    "updated_at": "2025-06-23 10:43:53.678963+00:00",
+    "rule_type": "style",
+    "languages": [
+      "python"
+    ],
+    "domains": [
+      "all"
+    ],
+    "task_types": [],
+    "content_types": [
+      "code"
+    ],
+    "tags": [
+      "python",
+      "typing",
+      "annotations",
+      "mypy"
+    ],
+    "rules": [
+      {
+        "condition": "type_annotations",
+        "guideline": "所有公共函数必须包含类型注解，使用Union、Optional等类型提示",
+        "priority": 7,
+        "examples": [
+          {
+            "good": "from typing import List, Optional, Union\n\ndef process_data(data: List[str], threshold: Optional[float] = None) -> Union[List[str], None]:\n    \"\"\"处理数据\"\"\"\n    if threshold is None:\n        return data\n    return [item for item in data if len(item) >= threshold]",
+            "bad": "def process_data(data, threshold=None):\n    if threshold is None:\n        return data\n    return [item for item in data if len(item) >= threshold]",
+            "explanation": "类型注解提高代码可读性和IDE支持"
+          }
+        ],
+        "pattern": null
+      }
+    ],
+    "applies_to": {
+      "file_patterns": [],
+      "project_types": [],
+      "contexts": []
+    },
+    "conflicts_with": [],
+    "overrides": [],
+    "validation": {
+      "tools": [
+        "mypy"
+      ],
+      "severity": "warning",
+      "auto_fix": false,
+      "timeout": 30,
+      "custom_config": {},
+      "code_style": null,
+      "documentation": null,
+      "testing": null,
+      "custom_validators": []
+    },
+    "active": true,
+    "usage_count": 0,
+    "success_rate": 0.0
+  },
+  {
+    "rule_id": "CR-CPP-MODERN-001",
+    "name": "现代C++特性使用",
+    "description": "优先使用C++11/14/17的现代特性，如auto、范围for循环、lambda表达式等",
+    "version": "1.0.0",
+    "author": "RuleGenerator",
+    "created_at": "2025-06-23 10:43:53.679000+00:00",
+    "updated_at": "2025-06-23 10:43:53.679000+00:00",
+    "rule_type": "style",
+    "languages": [
+      "cpp"
+    ],
+    "domains": [
+      "all"
+    ],
+    "task_types": [],
+    "content_types": [
+      "code"
+    ],
+    "tags": [
+      "cpp",
+      "modern_cpp",
+      "auto",
+      "lambda",
+      "range_for"
+    ],
+    "rules": [
+      {
+        "condition": "modern_cpp_features",
+        "guideline": "使用auto推导类型，范围for循环遍历容器，lambda表达式简化代码",
+        "priority": 7,
+        "examples": [
+          {
+            "good": "std::vector<int> numbers = {1, 2, 3, 4, 5};\n\n// 使用范围for循环\nfor (const auto& num : numbers) {\n    std::cout << num << std::endl;\n}\n\n// 使用lambda和算法\nauto is_even = [](int n) { return n % 2 == 0; };\nauto count = std::count_if(numbers.begin(), numbers.end(), is_even);",
+            "bad": "std::vector<int> numbers;\nnumbers.push_back(1);\nnumbers.push_back(2);\n\n// 传统for循环\nfor (std::vector<int>::iterator it = numbers.begin(); it != numbers.end(); ++it) {\n    std::cout << *it << std::endl;\n}",
+            "explanation": "现代C++特性使代码更简洁、安全和高效"
+          }
+        ],
+        "pattern": null
+      }
+    ],
+    "applies_to": {
+      "file_patterns": [],
+      "project_types": [],
+      "contexts": []
+    },
+    "conflicts_with": [],
+    "overrides": [],
+    "validation": {
+      "tools": [],
+      "severity": "warning",
+      "auto_fix": false,
+      "timeout": 30,
+      "custom_config": {},
+      "code_style": null,
+      "documentation": null,
+      "testing": null,
+      "custom_validators": []
+    },
+    "active": true,
+    "usage_count": 0,
+    "success_rate": 0.0
+  },
+  {
+    "rule_id": "CR-JS-ES6-001",
+    "name": "JavaScript ES6+特性使用",
+    "description": "优先使用ES6+特性：const/let、箭头函数、模板字符串、解构赋值等",
+    "version": "1.0.0",
+    "author": "RuleGenerator",
+    "created_at": "2025-06-23 10:43:53.679022+00:00",
+    "updated_at": "2025-06-23 10:43:53.679022+00:00",
+    "rule_type": "style",
+    "languages": [
+      "javascript",
+      "typescript"
+    ],
+    "domains": [
+      "web",
+      "node"
+    ],
+    "task_types": [],
+    "content_types": [
+      "code"
+    ],
+    "tags": [
+      "javascript",
+      "es6",
+      "arrow_functions",
+      "destructuring",
+      "const_let"
+    ],
+    "rules": [
+      {
+        "condition": "modern_javascript",
+        "guideline": "使用const/let替代var，箭头函数替代function，模板字符串替代字符串拼接",
+        "priority": 8,
+        "examples": [
+          {
+            "good": "const users = [\n  { id: 1, name: 'Alice', email: 'alice@example.com' },\n  { id: 2, name: 'Bob', email: 'bob@example.com' }\n];\n\nconst getActiveUsers = () => {\n  return users.filter(user => user.active);\n};\n\nconst formatUser = ({ name, email }) => {\n  return `${name} <${email}>`;\n};",
+            "bad": "var users = [\n  { id: 1, name: 'Alice', email: 'alice@example.com' },\n  { id: 2, name: 'Bob', email: 'bob@example.com' }\n];\n\nfunction getActiveUsers() {\n  return users.filter(function(user) {\n    return user.active;\n  });\n}\n\nfunction formatUser(user) {\n  return user.name + ' <' + user.email + '>';\n}",
+            "explanation": "现代JavaScript特性提高代码可读性和维护性"
+          }
+        ],
+        "pattern": null
+      }
+    ],
+    "applies_to": {
+      "file_patterns": [],
+      "project_types": [],
+      "contexts": []
+    },
+    "conflicts_with": [],
+    "overrides": [],
+    "validation": {
+      "tools": [
+        "eslint"
+      ],
+      "severity": "warning",
+      "auto_fix": false,
+      "timeout": 30,
+      "custom_config": {},
+      "code_style": null,
+      "documentation": null,
+      "testing": null,
+      "custom_validators": []
+    },
+    "active": true,
+    "usage_count": 0,
+    "success_rate": 0.0
+  }
+]

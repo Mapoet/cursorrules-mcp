@@ -1,0 +1,202 @@
+[
+  {
+    "rule_id": "CR-PY-ERROR-001",
+    "name": "Python异常处理最佳实践",
+    "description": "Python异常处理应具体化异常类型，避免裸露的except子句，提供有意义的错误信息",
+    "version": "1.0.0",
+    "author": "RuleGenerator",
+    "created_at": "2025-06-23 10:43:53.678952+00:00",
+    "updated_at": "2025-06-23 10:43:53.678952+00:00",
+    "rule_type": "content",
+    "languages": [
+      "python"
+    ],
+    "domains": [
+      "all"
+    ],
+    "task_types": [],
+    "content_types": [
+      "code"
+    ],
+    "tags": [
+      "python",
+      "exceptions",
+      "error_handling",
+      "best_practices"
+    ],
+    "rules": [
+      {
+        "condition": "specific_exception_handling",
+        "guideline": "使用具体的异常类型，避免裸露的except，为异常提供上下文信息",
+        "priority": 9,
+        "examples": [
+          {
+            "good": "try:\n    value = int(user_input)\nexcept ValueError as e:\n    logger.error(f'无法转换输入为整数: {user_input}, 错误: {e}')\n    raise ValueError(f'输入值无效: {user_input}') from e",
+            "bad": "try:\n    value = int(user_input)\nexcept:\n    pass",
+            "explanation": "具体的异常处理提供更好的错误信息和调试能力"
+          }
+        ],
+        "pattern": null
+      }
+    ],
+    "applies_to": {
+      "file_patterns": [],
+      "project_types": [],
+      "contexts": []
+    },
+    "conflicts_with": [],
+    "overrides": [],
+    "validation": {
+      "tools": [
+        "pylint",
+        "flake8"
+      ],
+      "severity": "error",
+      "auto_fix": false,
+      "timeout": 30,
+      "custom_config": {},
+      "code_style": null,
+      "documentation": null,
+      "testing": null,
+      "custom_validators": []
+    },
+    "active": true,
+    "usage_count": 0,
+    "success_rate": 0.0
+  },
+  {
+    "rule_id": "CR-CPP-RAII-001",
+    "name": "C++ RAII资源管理",
+    "description": "C++代码应使用RAII模式管理资源，优先使用智能指针而不是原始指针",
+    "version": "1.0.0",
+    "author": "RuleGenerator",
+    "created_at": "2025-06-23 10:43:53.678986+00:00",
+    "updated_at": "2025-06-23 10:43:53.678987+00:00",
+    "rule_type": "content",
+    "languages": [
+      "cpp"
+    ],
+    "domains": [
+      "all"
+    ],
+    "task_types": [],
+    "content_types": [
+      "code"
+    ],
+    "tags": [
+      "cpp",
+      "raii",
+      "memory_management",
+      "smart_pointers"
+    ],
+    "rules": [
+      {
+        "condition": "raii_resource_management",
+        "guideline": "使用std::unique_ptr、std::shared_ptr等智能指针管理动态内存，避免手动new/delete",
+        "priority": 9,
+        "examples": [
+          {
+            "good": "#include <memory>\n\nclass DataProcessor {\npublic:\n    DataProcessor() : data_(std::make_unique<std::vector<double>>()) {}\n    \nprivate:\n    std::unique_ptr<std::vector<double>> data_;\n};",
+            "bad": "class DataProcessor {\npublic:\n    DataProcessor() : data_(new std::vector<double>()) {}\n    ~DataProcessor() { delete data_; }\n    \nprivate:\n    std::vector<double>* data_;\n};",
+            "explanation": "智能指针自动管理内存，避免内存泄漏"
+          }
+        ],
+        "pattern": null
+      }
+    ],
+    "applies_to": {
+      "file_patterns": [],
+      "project_types": [],
+      "contexts": []
+    },
+    "conflicts_with": [],
+    "overrides": [],
+    "validation": {
+      "tools": [
+        "clang-tidy",
+        "cppcheck"
+      ],
+      "severity": "error",
+      "auto_fix": false,
+      "timeout": 30,
+      "custom_config": {},
+      "code_style": null,
+      "documentation": null,
+      "testing": null,
+      "custom_validators": []
+    },
+    "active": true,
+    "usage_count": 0,
+    "success_rate": 0.0
+  },
+  {
+    "rule_id": "CR-SCI-PRECISION-001",
+    "name": "科学计算数值精度标准",
+    "description": "科学计算中必须明确指定数值精度，避免浮点误差，使用适当的数值类型",
+    "version": "1.0.0",
+    "author": "RuleGenerator",
+    "created_at": "2025-06-23 10:43:53.679078+00:00",
+    "updated_at": "2025-06-23 10:43:53.679078+00:00",
+    "rule_type": "content",
+    "languages": [
+      "python",
+      "cpp",
+      "fortran"
+    ],
+    "domains": [
+      "meteorology",
+      "geophysics",
+      "oceanography",
+      "numerical_computation"
+    ],
+    "task_types": [],
+    "content_types": [
+      "code",
+      "algorithm"
+    ],
+    "tags": [
+      "scientific",
+      "numerical",
+      "precision",
+      "floating_point"
+    ],
+    "rules": [
+      {
+        "condition": "numerical_precision",
+        "guideline": "使用Decimal或高精度库处理精确计算，明确指定容差和收敛条件",
+        "priority": 10,
+        "examples": [
+          {
+            "good": "import numpy as np\nfrom decimal import Decimal, getcontext\n\n# 设置精度\ngetcontext().prec = 50\n\ndef calculate_atmospheric_pressure(altitude_m: float, tolerance: float = 1e-6) -> float:\n    \"\"\"\n    计算大气压力，使用标准大气模型\n    \n    Args:\n        altitude_m: 海拔高度（米）\n        tolerance: 计算容差\n    \n    Returns:\n        大气压力（帕斯卡）\n    \"\"\"\n    # 标准大气压\n    p0 = Decimal('101325.0')  # Pa\n    # 重力加速度\n    g = Decimal('9.80665')    # m/s²\n    # 气体常数\n    R = Decimal('287.05')     # J/(kg·K)\n    # 标准温度\n    T0 = Decimal('288.15')    # K\n    \n    h = Decimal(str(altitude_m))\n    pressure = p0 * (1 - g * h / (R * T0)) ** (g / R)\n    \n    return float(pressure)",
+            "bad": "def calculate_pressure(altitude):\n    return 101325 * (1 - 0.0065 * altitude / 288.15) ** 5.255",
+            "explanation": "明确的精度控制确保科学计算的准确性和可重复性"
+          }
+        ],
+        "pattern": null
+      }
+    ],
+    "applies_to": {
+      "file_patterns": [],
+      "project_types": [],
+      "contexts": []
+    },
+    "conflicts_with": [],
+    "overrides": [],
+    "validation": {
+      "tools": [
+        "numerical_validator"
+      ],
+      "severity": "error",
+      "auto_fix": false,
+      "timeout": 30,
+      "custom_config": {},
+      "code_style": null,
+      "documentation": null,
+      "testing": null,
+      "custom_validators": []
+    },
+    "active": true,
+    "usage_count": 0,
+    "success_rate": 0.0
+  }
+]

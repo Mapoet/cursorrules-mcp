@@ -1,0 +1,132 @@
+[
+  {
+    "rule_id": "CR-DOC-API-001",
+    "name": "API文档标准格式",
+    "description": "API文档应包含完整的端点描述、参数说明、响应格式和错误码",
+    "version": "1.0.0",
+    "author": "RuleGenerator",
+    "created_at": "2025-06-23 10:43:53.679052+00:00",
+    "updated_at": "2025-06-23 10:43:53.679052+00:00",
+    "rule_type": "format",
+    "languages": [
+      "markdown",
+      "openapi"
+    ],
+    "domains": [
+      "api",
+      "web"
+    ],
+    "task_types": [],
+    "content_types": [
+      "documentation"
+    ],
+    "tags": [
+      "api",
+      "documentation",
+      "openapi",
+      "rest"
+    ],
+    "rules": [
+      {
+        "condition": "complete_api_documentation",
+        "guideline": "每个API端点必须包含：描述、HTTP方法、URL路径、参数、响应示例、错误码",
+        "priority": 9,
+        "examples": [
+          {
+            "good": "## POST /api/users\n\n创建新用户\n\n### 参数\n- `name` (string, required): 用户姓名\n- `email` (string, required): 用户邮箱\n- `age` (integer, optional): 用户年龄\n\n### 响应\n\n**成功 (201)**\n```json\n{\n  \"id\": 123,\n  \"name\": \"张三\",\n  \"email\": \"zhangsan@example.com\",\n  \"created_at\": \"2024-01-01T00:00:00Z\"\n}\n```\n\n**错误 (400)**\n```json\n{\n  \"error\": \"邮箱格式无效\",\n  \"code\": \"INVALID_EMAIL\"\n}\n```",
+            "bad": "## 创建用户\n\n发送POST请求到/api/users创建用户",
+            "explanation": "完整的API文档帮助开发者正确使用接口"
+          }
+        ],
+        "pattern": null
+      }
+    ],
+    "applies_to": {
+      "file_patterns": [],
+      "project_types": [],
+      "contexts": []
+    },
+    "conflicts_with": [],
+    "overrides": [],
+    "validation": {
+      "tools": [],
+      "severity": "warning",
+      "auto_fix": false,
+      "timeout": 30,
+      "custom_config": {},
+      "code_style": null,
+      "documentation": null,
+      "testing": null,
+      "custom_validators": []
+    },
+    "active": true,
+    "usage_count": 0,
+    "success_rate": 0.0
+  },
+  {
+    "rule_id": "CR-WEB-RESPONSIVE-001",
+    "name": "响应式设计标准",
+    "description": "Web界面必须支持响应式设计，适配移动设备和不同屏幕尺寸",
+    "version": "1.0.0",
+    "author": "RuleGenerator",
+    "created_at": "2025-06-23 10:43:53.679106+00:00",
+    "updated_at": "2025-06-23 10:43:53.679107+00:00",
+    "rule_type": "format",
+    "languages": [
+      "css",
+      "html",
+      "javascript"
+    ],
+    "domains": [
+      "web",
+      "frontend"
+    ],
+    "task_types": [],
+    "content_types": [
+      "code"
+    ],
+    "tags": [
+      "web",
+      "responsive",
+      "css",
+      "mobile",
+      "media_queries"
+    ],
+    "rules": [
+      {
+        "condition": "responsive_design",
+        "guideline": "使用媒体查询、flexbox/grid布局，确保在不同设备上的良好体验",
+        "priority": 8,
+        "examples": [
+          {
+            "good": "/* 移动优先设计 */\n.container {\n  display: flex;\n  flex-direction: column;\n  padding: 1rem;\n}\n\n.card {\n  width: 100%;\n  margin-bottom: 1rem;\n}\n\n/* 平板设备 */\n@media (min-width: 768px) {\n  .container {\n    flex-direction: row;\n    flex-wrap: wrap;\n    padding: 2rem;\n  }\n  \n  .card {\n    width: calc(50% - 1rem);\n    margin-right: 1rem;\n  }\n}\n\n/* 桌面设备 */\n@media (min-width: 1024px) {\n  .card {\n    width: calc(33.333% - 1rem);\n  }\n}",
+            "bad": ".container {\n  width: 1200px;\n  margin: 0 auto;\n}\n\n.card {\n  width: 300px;\n  float: left;\n}",
+            "explanation": "响应式设计确保网站在所有设备上都有良好的用户体验"
+          }
+        ],
+        "pattern": null
+      }
+    ],
+    "applies_to": {
+      "file_patterns": [],
+      "project_types": [],
+      "contexts": []
+    },
+    "conflicts_with": [],
+    "overrides": [],
+    "validation": {
+      "tools": [],
+      "severity": "warning",
+      "auto_fix": false,
+      "timeout": 30,
+      "custom_config": {},
+      "code_style": null,
+      "documentation": null,
+      "testing": null,
+      "custom_validators": []
+    },
+    "active": true,
+    "usage_count": 0,
+    "success_rate": 0.0
+  }
+]

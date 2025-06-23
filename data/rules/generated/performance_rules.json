@@ -1,0 +1,68 @@
+[
+  {
+    "rule_id": "CR-DB-OPTIMIZE-001",
+    "name": "SQL查询优化标准",
+    "description": "SQL查询应使用适当的索引、避免N+1查询、合理使用JOIN和WHERE条件",
+    "version": "1.0.0",
+    "author": "RuleGenerator",
+    "created_at": "2025-06-23 10:43:53.679132+00:00",
+    "updated_at": "2025-06-23 10:43:53.679132+00:00",
+    "rule_type": "performance",
+    "languages": [
+      "sql",
+      "python",
+      "javascript"
+    ],
+    "domains": [
+      "database",
+      "backend"
+    ],
+    "task_types": [],
+    "content_types": [
+      "code"
+    ],
+    "tags": [
+      "sql",
+      "database",
+      "performance",
+      "optimization",
+      "indexing"
+    ],
+    "rules": [
+      {
+        "condition": "sql_optimization",
+        "guideline": "使用EXPLAIN分析查询计划，创建合适的索引，避免SELECT *",
+        "priority": 9,
+        "examples": [
+          {
+            "good": "-- 使用索引的高效查询\nSELECT u.id, u.name, u.email\nFROM users u\nINNER JOIN user_profiles p ON u.id = p.user_id\nWHERE u.active = true\n  AND u.created_at >= '2024-01-01'\n  AND p.department = 'engineering'\nORDER BY u.created_at DESC\nLIMIT 50;\n\n-- 创建支持查询的复合索引\nCREATE INDEX idx_users_active_created ON users(active, created_at);\nCREATE INDEX idx_profiles_department ON user_profiles(department);",
+            "bad": "-- 低效查询\nSELECT *\nFROM users u, user_profiles p\nWHERE u.id = p.user_id\nORDER BY u.created_at;",
+            "explanation": "优化的SQL查询提高数据库性能和响应速度"
+          }
+        ],
+        "pattern": null
+      }
+    ],
+    "applies_to": {
+      "file_patterns": [],
+      "project_types": [],
+      "contexts": []
+    },
+    "conflicts_with": [],
+    "overrides": [],
+    "validation": {
+      "tools": [],
+      "severity": "warning",
+      "auto_fix": false,
+      "timeout": 30,
+      "custom_config": {},
+      "code_style": null,
+      "documentation": null,
+      "testing": null,
+      "custom_validators": []
+    },
+    "active": true,
+    "usage_count": 0,
+    "success_rate": 0.0
+  }
+]

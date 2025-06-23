@@ -1,0 +1,155 @@
+# CursorRules-MCP 配置文件
+# 这是一个完整的配置示例文件
+
+# 基础配置
+version: "1.0.0"
+debug: false
+
+# 路径配置
+rules_dir: "data/rules"
+templates_dir: "data/templates"
+cache_dir: ".cache"
+log_dir: "logs"
+
+# 服务器配置
+server:
+  host: "localhost"
+  port: 8000
+  workers: 1
+  reload: false
+  log_level: "INFO"
+
+# 数据库配置
+database:
+  type: "sqlite"
+  host: "localhost"
+  port: 5432
+  database: "cursorrules"
+  username: null
+  password: null
+  connection_timeout: 30
+  pool_size: 10
+
+# 缓存配置
+cache:
+  enabled: true
+  type: "memory"  # memory, redis, file
+  redis_url: null
+  ttl: 3600  # 缓存生存时间（秒）
+  max_size: 1000
+
+# 搜索配置
+search:
+  default_limit: 10
+  max_limit: 100
+  fuzzy_threshold: 0.7
+  enable_semantic_search: true
+  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+
+# 验证配置
+validation:
+  enabled: true
+  parallel_validation: true
+  max_workers: 4
+  timeout: 60
+  
+  # 验证工具配置
+  tools:
+    python:
+      flake8:
+        name: "flake8"
+        enabled: true
+        command: "flake8"
+        args: ["--max-line-length=79", "--ignore=E203,W503"]
+        timeout: 30
+      
+      pylint:
+        name: "pylint"
+        enabled: true
+        command: "pylint"
+        args: ["--disable=C0103,C0114"]
+        timeout: 30
+      
+      black:
+        name: "black"
+        enabled: true
+        command: "black"
+        args: ["--check", "--diff"]
+        timeout: 30
+      
+      mypy:
+        name: "mypy"
+        enabled: true
+        command: "mypy"
+        args: ["--ignore-missing-imports"]
+        timeout: 30
+    
+    javascript:
+      eslint:
+        name: "eslint"
+        enabled: true
+        command: "eslint"
+        args: ["--format=json"]
+        timeout: 30
+      
+      prettier:
+        name: "prettier"
+        enabled: true
+        command: "prettier"
+        args: ["--check"]
+        timeout: 30
+    
+    cpp:
+      cppcheck:
+        name: "cppcheck"
+        enabled: true
+        command: "cppcheck"
+        args: ["--enable=all", "--xml"]
+        timeout: 30
+      
+      clang-tidy:
+        name: "clang-tidy"
+        enabled: true
+        command: "clang-tidy"
+        args: ["-checks=*"]
+        timeout: 30
+    
+    markdown:
+      markdownlint:
+        name: "markdownlint"
+        enabled: true
+        command: "markdownlint"
+        args: ["--json"]
+        timeout: 30
+
+# 功能开关
+features:
+  rule_search: true
+  content_validation: true
+  prompt_enhancement: true
+  template_generation: true
+  knowledge_search: true
+  auto_learning: false
+  metrics_collection: true
+
+# 安全配置
+security:
+  enable_auth: false
+  api_key: null
+  rate_limit: 100  # 每分钟请求数
+  cors_origins: ["*"]
+
+# 日志配置
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/cursorrules.log"
+  max_size: "10MB"
+  backup_count: 5
+
+# 性能配置
+performance:
+  max_concurrent_validations: 10
+  validation_timeout: 60
+  rule_cache_size: 1000
+  search_cache_size: 500

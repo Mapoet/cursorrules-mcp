@@ -1,0 +1,73 @@
+[
+  {
+    "rule_id": "CR-SEC-INPUT-001",
+    "name": "输入验证安全标准",
+    "description": "所有用户输入必须进行验证和净化，防止注入攻击和XSS",
+    "version": "1.0.0",
+    "author": "RuleGenerator",
+    "created_at": "2025-06-23 10:43:53.679159+00:00",
+    "updated_at": "2025-06-23 10:43:53.679159+00:00",
+    "rule_type": "security",
+    "languages": [
+      "python",
+      "javascript",
+      "sql"
+    ],
+    "domains": [
+      "web",
+      "api",
+      "backend"
+    ],
+    "task_types": [],
+    "content_types": [
+      "code"
+    ],
+    "tags": [
+      "security",
+      "input_validation",
+      "xss",
+      "sql_injection",
+      "sanitization"
+    ],
+    "rules": [
+      {
+        "condition": "input_validation",
+        "guideline": "使用参数化查询、输入净化库、类型验证，永远不信任用户输入",
+        "priority": 10,
+        "examples": [
+          {
+            "good": "from pydantic import BaseModel, validator\nimport bleach\nfrom sqlalchemy import text\n\nclass UserInput(BaseModel):\n    name: str\n    email: str\n    content: str\n    \n    @validator('name')\n    def validate_name(cls, v):\n        if not v or len(v.strip()) < 2:\n            raise ValueError('姓名至少2个字符')\n        return bleach.clean(v.strip())\n    \n    @validator('email')\n    def validate_email(cls, v):\n        # 使用正则验证邮箱格式\n        import re\n        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'\n        if not re.match(pattern, v):\n            raise ValueError('邮箱格式无效')\n        return v.lower().strip()\n\ndef get_user_by_email(db, email: str):\n    # 使用参数化查询防止SQL注入\n    query = text('SELECT * FROM users WHERE email = :email')\n    return db.execute(query, {'email': email}).fetchone()",
+            "bad": "def get_user_by_email(db, email):\n    # SQL注入漏洞\n    query = f\"SELECT * FROM users WHERE email = '{email}'\"\n    return db.execute(query).fetchone()\n\ndef process_user_input(data):\n    # 未验证的用户输入\n    return f\"<div>用户说: {data['content']}</div>\"",
+            "explanation": "严格的输入验证是防止安全漏洞的第一道防线"
+          }
+        ],
+        "pattern": null
+      }
+    ],
+    "applies_to": {
+      "file_patterns": [],
+      "project_types": [],
+      "contexts": []
+    },
+    "conflicts_with": [],
+    "overrides": [],
+    "validation": {
+      "tools": [
+        "bandit",
+        "safety",
+        "security_linter"
+      ],
+      "severity": "error",
+      "auto_fix": false,
+      "timeout": 30,
+      "custom_config": {},
+      "code_style": null,
+      "documentation": null,
+      "testing": null,
+      "custom_validators": []
+    },
+    "active": true,
+    "usage_count": 0,
+    "success_rate": 0.0
+  }
+]

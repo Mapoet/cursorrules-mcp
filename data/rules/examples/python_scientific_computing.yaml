@@ -1,0 +1,100 @@
+rule_id: "CR-PY-SCI-001"
+name: "Python科学计算标准规范"
+description: "针对气象、地球物理、海洋等科学计算的Python编程规范，确保数值精度、性能和可维护性"
+version: "1.0.0"
+author: "scientific_computing_team"
+
+# 分类信息
+rule_type: "style"
+languages: ["python"]
+domains: ["meteorology", "geophysics", "oceanography", "numerical_computation"]
+task_types: ["data_analysis", "numerical_computation", "visualization"]
+content_types: ["code", "documentation"]
+
+# 标签系统
+tags: 
+  - "python"
+  - "numpy" 
+  - "scipy"
+  - "pandas"
+  - "scientific"
+  - "numerical"
+  - "meteorology"
+  - "precision"
+  - "performance"
+
+# 规则定义
+rules:
+  - condition: "when working with meteorological data arrays"
+    guideline: "使用 numpy 数组并指定 dtype=float64 确保气象数据的数值精度"
+    priority: 9
+    examples:
+      - "temp_data = np.array(temperature_values, dtype=np.float64)"
+      - "pressure_field = np.zeros((nlat, nlon), dtype=np.float64)"
+
+  - condition: "when performing atmospheric calculations"
+    guideline: "使用 scipy.constants 中的物理常数，避免硬编码数值"
+    priority: 8
+    examples:
+      - "from scipy.constants import g  # 重力加速度"
+      - "from scipy.constants import R  # 通用气体常数"
+
+  - condition: "when handling missing data"
+    guideline: "使用 np.nan 表示缺失值，并用 np.ma.masked_array 处理掩码数据"
+    priority: 8
+    examples:
+      - "data[data < -999] = np.nan"
+      - "masked_data = np.ma.masked_invalid(data)"
+
+  - condition: "when creating scientific plots"
+    guideline: "使用科学记数法显示大数值，添加适当的单位和标题"
+    priority: 7
+    examples:
+      - "plt.ticklabel_format(style='scientific', axis='y', scilimits=(0,0))"
+      - "plt.ylabel('Temperature (K)')"
+
+  - condition: "when writing functions for numerical computation"
+    guideline: "函数应包含类型注解、docstring说明和单位信息"
+    priority: 8
+    examples:
+      - |
+        def calculate_potential_temperature(temp: np.ndarray, pressure: np.ndarray) -> np.ndarray:
+            """
+            计算位温
+            
+            Parameters:
+            -----------
+            temp : np.ndarray
+                温度数组 (K)
+            pressure : np.ndarray  
+                气压数组 (Pa)
+                
+            Returns:
+            --------
+            np.ndarray
+                位温数组 (K)
+            """
+
+  - condition: "when dealing with large datasets"
+    guideline: "优先使用 dask 或 xarray 进行内存高效的数据处理"
+    priority: 6
+    examples:
+      - "import dask.array as da"
+      - "import xarray as xr"
+
+# 应用范围
+applies_to:
+  file_patterns: ["*.py"]
+  project_types: ["research", "operational", "analysis"]
+  contexts: ["data_processing", "model_development", "visualization"]
+
+# 冲突处理
+conflicts_with: []
+overrides: []
+
+# 验证规则
+validation:
+  code_style: "pep8"
+  documentation: "numpy_style"
+  testing: "pytest_required"
+  custom_validators: ["scientific_precision_checker", "unit_consistency_checker"] 

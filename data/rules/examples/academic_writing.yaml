@@ -1,0 +1,97 @@
+rule_id: "CR-DOC-ACADEMIC-001"
+name: "学术技术文档写作规范"
+description: "适用于科研论文、技术报告、基金申请等学术文档的写作规范，确保专业性、准确性和一致性"
+version: "1.0.0"
+author: "academic_writing_team"
+
+# 分类信息
+rule_type: "content"
+languages: ["chinese", "english"]
+domains: ["academic_research", "grant_application", "technical_documentation"]
+task_types: ["paper_writing", "grant_application", "software_design"]
+content_types: ["documentation"]
+
+# 标签系统
+tags:
+  - "academic"
+  - "scientific_writing"
+  - "formal"
+  - "research"
+  - "documentation"
+  - "citation"
+  - "methodology"
+  - "precision"
+
+# 规则定义
+rules:
+  - condition: "when writing research methodology sections"
+    guideline: "使用主动语态描述研究方法，避免模糊表述，提供具体的实验设置和参数"
+    priority: 9
+    examples:
+      - "我们采用WRF模式进行数值模拟，水平分辨率设置为3km"
+      - "本研究使用ECMWF ERA5再分析资料作为初始条件"
+
+  - condition: "when presenting scientific results"
+    guideline: "结果描述应客观、准确，避免主观性语言，必须包含统计显著性检验"
+    priority: 9
+    examples:
+      - "温度偏差的均方根误差为0.8K (p < 0.01)"
+      - "相关系数达到0.85，置信度为95%"
+
+  - condition: "when citing literature"
+    guideline: "引用格式应遵循期刊要求，确保引用的准确性和时效性，优先引用近5年文献"
+    priority: 8
+    examples:
+      - "根据Smith et al. (2023)的研究表明..."
+      - "该方法在Zhang and Li (2022)的工作中得到验证"
+
+  - condition: "when writing abstracts"
+    guideline: "摘要应包含研究背景、方法、主要结果和结论四个要素，字数控制在300字以内"
+    priority: 8
+    examples:
+      - "【背景】【方法】【结果】【结论】的结构化表述"
+
+  - condition: "when describing technical specifications"
+    guideline: "技术参数必须精确，包含单位、精度、误差范围等信息"
+    priority: 9
+    examples:
+      - "数据采样频率为1Hz，测量精度±0.1°C"
+      - "模式积分时间步长为30秒"
+
+  - condition: "when writing discussion sections"
+    guideline: "讨论应基于数据和文献，避免推测性语言，明确指出研究局限性"
+    priority: 7
+    examples:
+      - "基于本研究的数据分析表明..."
+      - "需要注意的是，本研究存在以下局限性..."
+
+  - condition: "when presenting figures and tables"
+    guideline: "图表应自解释，标题和标注清晰，单位明确，引用格式统一"
+    priority: 8
+    examples:
+      - "图1. 2020年夏季平均温度分布 (单位: °C)"
+      - "表1. 不同模式的统计验证结果"
+
+  - condition: "when writing conclusion sections"
+    guideline: "结论应简洁明确，避免重复结果，突出创新点和应用价值"
+    priority: 8
+    examples:
+      - "本研究主要贡献在于..."
+      - "该方法可应用于..."
+
+# 应用范围
+applies_to:
+  file_patterns: ["*.md", "*.tex", "*.docx", "*.txt"]
+  project_types: ["research", "academic", "documentation"]
+  contexts: ["paper_writing", "report_writing", "proposal_writing"]
+
+# 冲突处理
+conflicts_with: ["CR-DOC-INFORMAL-001"]
+overrides: []
+
+# 验证规则
+validation:
+  code_style: "academic_standard"
+  documentation: "scientific_format"
+  testing: "peer_review_ready"
+  custom_validators: ["citation_checker", "statistics_validator", "plagiarism_checker"] 

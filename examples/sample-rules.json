@@ -1,0 +1,207 @@
+[
+  {
+    "rule_id": "CR-PY-STYLE-001",
+    "name": "PEP8 Line Length Limit",
+    "description": "确保Python代码行长度不超过79个字符，符合PEP8规范，提高代码可读性",
+    "category": "style",
+    "priority": 8,
+    "tags": ["python", "pep8", "readability", "formatting", "line_length"],
+    "applicable_to": {
+      "languages": ["python"],
+      "domains": ["all"],
+      "content_types": ["code"]
+    },
+    "rule_content": {
+      "pattern": "^.{0,79}$",
+      "guideline": "每行代码长度应不超过79个字符。对于长表达式，使用括号进行换行，或者将长字符串分割成多行。",
+      "examples": [
+        {
+          "good": "# 良好示例\nresult = some_function(arg1, arg2,\n                      arg3, arg4)",
+          "bad": "# 不良示例\nresult = some_function(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)",
+          "explanation": "使用合理的换行和缩进保持代码可读性"
+        }
+      ]
+    },
+    "validation": {
+      "tools": ["flake8", "pylint", "black"],
+      "severity": "warning"
+    },
+    "metadata": {
+      "version": "1.0.0",
+      "author": "PEP8 Standard",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-12-20T00:00:00Z",
+      "dependencies": []
+    }
+  },
+  {
+    "rule_id": "CR-PY-DOC-001",
+    "name": "Function Docstring Format",
+    "description": "Python函数必须包含Google风格的docstring，包含参数说明、返回值和异常描述",
+    "category": "content",
+    "priority": 9,
+    "tags": ["python", "documentation", "docstring", "google_style", "function"],
+    "applicable_to": {
+      "languages": ["python"],
+      "domains": ["all"],
+      "content_types": ["code", "documentation"]
+    },
+    "rule_content": {
+      "guideline": "所有公共函数必须包含完整的docstring，使用Google风格格式，包含Args、Returns、Raises等部分。",
+      "examples": [
+        {
+          "good": "def calculate_mean(data: List[float]) -> float:\n    \"\"\"计算数值列表的平均值。\n    \n    Args:\n        data: 包含数值的列表\n    \n    Returns:\n        计算得出的平均值\n    \n    Raises:\n        ValueError: 当输入列表为空时\n    \"\"\"\n    if not data:\n        raise ValueError(\"输入列表不能为空\")\n    return sum(data) / len(data)",
+          "bad": "def calculate_mean(data):\n    # 计算平均值\n    return sum(data) / len(data)",
+          "explanation": "完整的docstring提供了清晰的函数说明和使用指导"
+        }
+      ]
+    },
+    "validation": {
+      "tools": ["pydocstyle", "sphinx", "custom_docstring_checker"],
+      "severity": "error"
+    },
+    "metadata": {
+      "version": "1.0.0",
+      "author": "Google Style Guide",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-12-20T00:00:00Z",
+      "dependencies": []
+    }
+  },
+  {
+    "rule_id": "CR-MET-DATA-001",
+    "name": "Meteorological Data Naming Convention",
+    "description": "气象数据变量命名必须遵循WMO标准，使用标准缩写和单位后缀",
+    "category": "semantic",
+    "priority": 10,
+    "tags": ["meteorology", "data_naming", "wmo_standard", "variables", "units"],
+    "applicable_to": {
+      "languages": ["python", "cpp", "fortran"],
+      "domains": ["meteorology"],
+      "content_types": ["code", "data_interface"]
+    },
+    "rule_content": {
+      "guideline": "气象变量命名应遵循WMO标准：temperature -> temp_celsius, pressure -> pres_hpa, humidity -> rh_percent",
+      "examples": [
+        {
+          "good": "# 标准命名\ntemp_celsius = 25.5  # 温度，摄氏度\npres_hpa = 1013.25   # 气压，百帕\nrh_percent = 65.0    # 相对湿度，百分比\nwind_speed_ms = 10.5 # 风速，米/秒",
+          "bad": "# 非标准命名\ntemperature = 25.5\npressure = 1013.25\nhumidity = 65.0\nwind = 10.5",
+          "explanation": "使用WMO标准缩写和单位后缀提高数据可理解性和国际兼容性"
+        }
+      ]
+    },
+    "validation": {
+      "tools": ["wmo_validator", "custom_naming_checker"],
+      "severity": "error"
+    },
+    "metadata": {
+      "version": "1.0.0",
+      "author": "WMO Standards",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-12-20T00:00:00Z",
+      "dependencies": ["WMO-306", "CF-conventions"]
+    }
+  },
+  {
+    "rule_id": "CR-CPP-PERF-001",
+    "name": "C++ Numerical Computing Optimization",
+    "description": "C++数值计算代码应优先使用向量化操作和内存对齐，避免不必要的拷贝",
+    "category": "performance",
+    "priority": 9,
+    "tags": ["cpp", "numerical_computing", "performance", "vectorization", "memory"],
+    "applicable_to": {
+      "languages": ["cpp"],
+      "domains": ["meteorology", "ionosphere", "geophysics"],
+      "content_types": ["code", "algorithm"]
+    },
+    "rule_content": {
+      "guideline": "使用Eigen库进行矩阵运算，使用const引用传递大对象，启用编译器优化标志",
+      "examples": [
+        {
+          "good": "// 良好示例\n#include <Eigen/Dense>\n\nvoid compute_statistics(const Eigen::VectorXd& data, \n                       double& mean, double& std) {\n    mean = data.mean();\n    std = std::sqrt((data.array() - mean).square().mean());\n}",
+          "bad": "// 不良示例\nvoid compute_statistics(std::vector<double> data) {\n    double sum = 0;\n    for(int i = 0; i < data.size(); i++) {\n        sum += data[i];\n    }\n    // 低效的循环实现\n}",
+          "explanation": "使用高效的数学库和避免不必要的数据拷贝可显著提升性能"
+        }
+      ]
+    },
+    "validation": {
+      "tools": ["cppcheck", "clang-tidy", "perf_analyzer"],
+      "severity": "warning"
+    },
+    "metadata": {
+      "version": "1.0.0",
+      "author": "HPC Best Practices",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-12-20T00:00:00Z",
+      "dependencies": ["Eigen", "OpenMP"]
+    }
+  },
+  {
+    "rule_id": "CR-DOC-PAPER-001",
+    "name": "Scientific Paper Section Structure",
+    "description": "科学论文必须包含标准章节结构：摘要、引言、方法、结果、讨论、结论",
+    "category": "format",
+    "priority": 10,
+    "tags": ["documentation", "paper", "academic", "structure", "scientific_writing"],
+    "applicable_to": {
+      "languages": ["markdown", "latex"],
+      "domains": ["meteorology", "ionosphere", "oceanography", "geophysics"],
+      "content_types": ["documentation"]
+    },
+    "rule_content": {
+      "guideline": "论文结构应遵循IMRAD格式(Introduction, Methods, Results, And Discussion)，每个部分应有明确的目标和内容要求",
+      "examples": [
+        {
+          "good": "# 论文标题\n\n## 摘要\n简洁概述研究目标、方法、主要结果和结论\n\n## 1. 引言\n研究背景、文献综述、研究空白、研究目标\n\n## 2. 数据与方法\n### 2.1 数据来源\n### 2.2 方法论\n\n## 3. 结果\n### 3.1 主要发现\n### 3.2 统计分析\n\n## 4. 讨论\n结果解释、局限性、对比分析\n\n## 5. 结论\n主要贡献、未来工作\n\n## 参考文献",
+          "bad": "# 论文\n\n一些研究内容...\n\n## 分析\n\n## 总结",
+          "explanation": "标准的学术论文结构确保逻辑清晰和易于理解"
+        }
+      ]
+    },
+    "validation": {
+      "tools": ["academic_structure_checker", "latex_validator"],
+      "severity": "error"
+    },
+    "metadata": {
+      "version": "1.0.0",
+      "author": "Academic Writing Standards",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-12-20T00:00:00Z",
+      "dependencies": ["IMRAD_standard"]
+    }
+  },
+  {
+    "rule_id": "CR-ION-ALG-001",
+    "name": "Ionospheric TEC Calculation Standard",
+    "description": "电离层TEC计算必须使用标准的Chapman函数和太阳天顶角修正",
+    "category": "semantic",
+    "priority": 10,
+    "tags": ["ionosphere", "tec", "chapman_function", "solar_zenith", "algorithm"],
+    "applicable_to": {
+      "languages": ["python", "fortran", "cpp"],
+      "domains": ["ionosphere"],
+      "content_types": ["code", "algorithm"]
+    },
+    "rule_content": {
+      "guideline": "TEC计算应使用标准Chapman函数：TEC = TEC0 * sec(χ)^n，其中χ为太阳天顶角，n为Chapman参数",
+      "examples": [
+        {
+          "good": "def calculate_tec(tec0, solar_zenith_angle, chapman_n=0.5):\n    \"\"\"\n    计算电离层总电子含量\n    \n    Args:\n        tec0: 天顶TEC值 (TECU)\n        solar_zenith_angle: 太阳天顶角 (弧度)\n        chapman_n: Chapman参数 (默认0.5)\n    \n    Returns:\n        斜向TEC值 (TECU)\n    \"\"\"\n    import numpy as np\n    return tec0 * np.power(1/np.cos(solar_zenith_angle), chapman_n)",
+          "bad": "def calc_tec(t, angle):\n    return t * angle  # 不正确的简化公式",
+          "explanation": "使用标准的Chapman函数确保电离层建模的准确性"
+        }
+      ]
+    },
+    "validation": {
+      "tools": ["ionosphere_validator", "physics_checker"],
+      "severity": "error"
+    },
+    "metadata": {
+      "version": "1.0.0",
+      "author": "Ionospheric Physics Standards",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-12-20T00:00:00Z",
+      "dependencies": ["Chapman_theory", "IRI_model"]
+    }
+  }
+] 
