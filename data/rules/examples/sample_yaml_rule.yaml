@@ -1,0 +1,63 @@
+# Python函数命名规范
+rule_id: "CR-PY-NAMING-001"
+name: "Python函数命名规范"
+description: "Python函数应使用snake_case命名，具有描述性且不超过50个字符"
+version: "1.0.0"
+author: "Mapoet"
+rule_type: "style"
+languages: ["python"]
+domains: ["software_development"]
+task_types: ["development"]
+content_types: ["code"]
+tags: ["python", "naming", "functions", "snake_case"]
+
+rules:
+  - condition: "python_function_naming"
+    guideline: |
+      Python函数命名应遵循以下规则：
+      1. 使用snake_case风格（小写字母+下划线）
+      2. 名称应具有描述性，说明函数的用途
+      3. 避免使用缩写，除非是通用缩写（如max, min, str等）
+      4. 函数名不应超过50个字符
+      5. 避免使用Python关键字和内置函数名
+      6. 布尔函数应以is_, has_, should_等开头
+    priority: 8
+    examples:
+      - good: |
+          def calculate_total_price(items):
+              """计算商品总价"""
+              return sum(item.price for item in items)
+          
+          def is_valid_email(email):
+              """检查邮箱地址是否有效"""
+              return "@" in email and "." in email
+        bad: |
+          def calcTotalPrice(items):  # 不是snake_case
+              return sum(item.price for item in items)
+          
+          def a(email):  # 名称不具描述性
+              return "@" in email
+        explanation: "良好的函数命名让代码更易读和维护"
+    pattern: "^[a-z_][a-z0-9_]*$"
+
+applies_to:
+  file_patterns: ["*.py"]
+  contexts: ["function_definition"]
+
+conflicts_with: []
+overrides: []
+
+validation:
+  tools: ["pylint", "flake8"]
+  severity: "warning" 
+  auto_fix: false
+  timeout: 30
+  custom_config:
+    pylint:
+      disable: ["invalid-name"]
+    flake8:
+      max-line-length: 88
+
+active: true
+usage_count: 0
+success_rate: 0.0

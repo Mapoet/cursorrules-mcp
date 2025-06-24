@@ -72,6 +72,8 @@ class CLI:
                 return await self._show_stats(parsed_args)
             elif parsed_args.command == 'test':
                 return await self._test_tools(parsed_args)
+            elif parsed_args.command == 'import':
+                return await self._import_rules(parsed_args)
             else:
                 parser.print_help()
                 return 1
@@ -157,6 +159,17 @@ class CLI:
         test_parser = subparsers.add_parser('test', help='测试验证工具')
         test_parser.add_argument('--language', '-l', help='测试特定语言的工具')
         test_parser.add_argument('--tool', '-t', help='测试特定工具')
+        
+        # 导入命令
+        import_parser = subparsers.add_parser('import', help='导入多格式规则文件')
+        import_parser.add_argument('paths', nargs='+', help='要导入的文件或目录路径')
+        import_parser.add_argument('--format', choices=['auto', 'markdown', 'yaml', 'json'], 
+                                 default='auto', help='指定文件格式')
+        import_parser.add_argument('--recursive', '-r', action='store_true', help='递归扫描目录')
+        import_parser.add_argument('--output-dir', help='输出目录')
+        import_parser.add_argument('--validate', action='store_true', help='导入后验证规则')
+        import_parser.add_argument('--merge', action='store_true', help='与现有规则合并')
+        import_parser.add_argument('--log', help='保存导入日志的文件路径')
         
         return parser
     
@@ -644,6 +657,147 @@ int main() {
         }
         
         return test_contents.get(language, '// Test content')
+
+    async def _import_rules(self, args) -> int:
+        """导入多格式规则文件"""
+        try:
+            from .rule_import import UnifiedRuleImporter
+            from .database import get_rule_database
+            
+            print("🚀 开始导入规则文件...")
+            
+            # 创建导入器
+            importer = UnifiedRuleImporter()
+            
+            # 执行导入
+            rules = importer.import_rules(
+                paths=args.paths,
+                recursive=args.recursive,
+                format_hint=args.format if args.format != 'auto' else None
+            )
+            
+            if not rules:
+                print("❌ 未能导入任何规则")
+                return 1
+            
+            print(f"✅ 成功解析 {len(rules)} 条规则")
+            
+            # 如果指定了输出目录，保存到文件
+            if args.output_dir:
+                output_dir = Path(args.output_dir)
+                output_dir.mkdir(parents=True, exist_ok=True)
+                
+                # 保存为JSON格式
+                output_file = output_dir / "imported_rules.json"
+                rules_data = [rule.dict() for rule in rules]
+                
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    import json
+                    json.dump(rules_data, f, indent=2, ensure_ascii=False, default=str)
+                
+                print(f"💾 规则已保存到: {output_file}")
+            
+            # 如果启用合并，添加到数据库
+            if args.merge:
+                print("🔄 正在合并到规则数据库...")
+                
+                try:
+                    database = get_rule_database()
+                    await database.initialize()
+                    
+                    added_count = 0
+                    updated_count = 0
+                    
+                    for rule in rules:
+                        existing_rule = database.get_rule_by_id(rule.rule_id)
+                        
+                        if existing_rule:
+                            # 更新现有规则
+                            database.update_rule(rule)
+                            updated_count += 1
+                            print(f"🔄 更新规则: {rule.rule_id}")
+                        else:
+                            # 添加新规则
+                            database.add_rule(rule)
+                            added_count += 1
+                            print(f"➕ 添加规则: {rule.rule_id}")
+                    
+                    print(f"📊 合并结果: 新增 {added_count} 条，更新 {updated_count} 条")
+                    
+                except Exception as e:
+                    print(f"⚠️ 合并到数据库时出错: {e}")
+                    if args.verbose:
+                        import traceback
+                        traceback.print_exc()
+            
+            # 如果启用验证，验证导入的规则
+            if args.validate:
+                print("🔍 正在验证导入的规则...")
+                
+                valid_count = 0
+                invalid_count = 0
+                
+                for rule in rules:
+                    try:
+                        # 简单验证：检查必需字段
+                        if not rule.rule_id or not rule.name or not rule.rules:
+                            print(f"❌ 规则验证失败: {rule.rule_id} - 缺少必需字段")
+                            invalid_count += 1
+                        else:
+                            print(f"✅ 规则验证通过: {rule.rule_id}")
+                            valid_count += 1
+                    except Exception as e:
+                        print(f"❌ 规则验证失败: {rule.rule_id} - {e}")
+                        invalid_count += 1
+                
+                print(f"📊 验证结果: 通过 {valid_count} 条，失败 {invalid_count} 条")
+            
+            # 显示导入摘要
+            summary = importer.get_import_summary()
+            
+            print("\n" + "="*60)
+            print("📊 导入摘要:")
+            print(f"  总文件数: {summary['total_files']}")
+            print(f"  成功导入: {summary['successful_imports']}")
+            print(f"  导入失败: {summary['failed_imports']}")
+            print(f"  成功率: {summary['success_rate']:.1%}")
+            print(f"  总规则数: {len(rules)}")
+            
+            # 按格式统计
+            format_stats = {}
+            for log_entry in summary['import_log']:
+                if log_entry['status'] == 'success':
+                    file_path = Path(log_entry['file'])
+                    ext = file_path.suffix.lower()
+                    format_name = {
+                        '.md': 'Markdown',
+                        '.markdown': 'Markdown', 
+                        '.yaml': 'YAML',
+                        '.yml': 'YAML',
+                        '.json': 'JSON'
+                    }.get(ext, 'Unknown')
+                    
+                    format_stats[format_name] = format_stats.get(format_name, 0) + 1
+            
+            if format_stats:
+                print("\n📁 按格式统计:")
+                for format_name, count in format_stats.items():
+                    print(f"  {format_name}: {count} 个文件")
+            
+            # 保存导入日志
+            if args.log:
+                log_path = Path(args.log)
+                importer.save_import_log(log_path)
+                print(f"📝 导入日志已保存: {log_path}")
+            
+            return 0 if summary['failed_imports'] == 0 else 1
+            
+        except Exception as e:
+            logger.error(f"导入规则失败: {e}")
+            if args.verbose:
+                import traceback
+                traceback.print_exc()
+            return 1
 
 
 async def main() -> int:

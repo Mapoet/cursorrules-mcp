@@ -45,13 +45,14 @@ class MCPHttpServer:
     支持通过HTTP/SSE提供MCP服务
     """
     
-    def __init__(self, rules_dir: str = "data/rules", host: str = "localhost", port: int = 8000):
+    def __init__(self, rules_dir: str = "data/rules", host: str = "localhost", port: int = 8000, workers: int = 1):
         """初始化HTTP服务器
         
         Args:
             rules_dir: 规则目录路径
             host: 服务器主机地址
             port: 服务器端口
+            workers: 工作进程数量，默认为1
         """
         self.app = FastAPI(
             title="CursorRules-MCP HTTP Server",
@@ -61,6 +62,7 @@ class MCPHttpServer:
         self.rule_engine = RuleEngine(rules_dir)
         self.host = host
         self.port = port
+        self.workers = workers
         self._initialized = False
         self._active_connections: Dict[str, Dict] = {}
         
@@ -310,7 +312,26 @@ class MCPHttpServer:
                 "description": "获取规则库统计信息",
                 "inputSchema": {
                     "type": "object",
-                    "properties": {}
+                    "properties": {
+                        "languages": {"type": "string", "description": "过滤的编程语言（逗号分隔）"},
+                        "domains": {"type": "string", "description": "过滤的应用领域（逗号分隔）"},
+                        "rule_types": {"type": "string", "description": "过滤的规则类型（逗号分隔）"},
+                        "tags": {"type": "string", "description": "过滤的标签（逗号分隔）"}
+                    }
+                }
+            },
+            {
+                "name": "import_rules",
+                "description": "导入规则（支持多种格式）",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "content": {"type": "string", "description": "规则内容（如果提供了content，则忽略file_path）"},
+                        "file_path": {"type": "string", "description": "规则文件路径"},
+                        "format": {"type": "string", "description": "格式类型", "enum": ["auto", "markdown", "yaml", "json"], "default": "auto"},
+                        "validate": {"type": "boolean", "description": "是否验证规则", "default": True},
+                        "merge": {"type": "boolean", "description": "是否合并重复规则", "default": False}
+                    }
                 }
             }
         ]
@@ -329,7 +350,9 @@ class MCPHttpServer:
         elif tool_name == "enhance_prompt":
             result = await self._enhance_prompt(**arguments)
         elif tool_name == "get_statistics":
-            result = await self._get_statistics()
+            result = await self._get_statistics(**arguments)
+        elif tool_name == "import_rules":
+            result = await self._import_rules(**arguments)
         else:
             raise ValueError(f"Unknown tool: {tool_name}")
         
@@ -502,42 +525,96 @@ class MCPHttpServer:
             logger.error(f"增强提示时发生错误: {e}")
             return f"❌ 增强失败: {str(e)}"
     
-    async def _get_statistics(self) -> str:
-        """获取统计信息的实现"""
+    async def _get_statistics(self, languages: str = "", domains: str = "", 
+                           rule_types: str = "", tags: str = "") -> str:
+        """获取统计信息的实现（支持过滤参数）"""
         try:
-            stats = await self.rule_engine.get_statistics()
+            # 构建过滤条件
+            filter_conditions = {}
+            if languages:
+                filter_conditions['languages'] = self._parse_list_param(languages)
+            if domains:
+                filter_conditions['domains'] = self._parse_list_param(domains)
+            if rule_types:
+                filter_conditions['rule_types'] = [RuleType(rt.strip()) for rt in rule_types.split(',') if rt.strip()]
+            if tags:
+                filter_conditions['tags'] = self._parse_list_param(tags)
             
-            result_text = f"""📊 **CursorRules-MCP 规则库统计**
+            # 获取统计信息
+            stats = self.rule_engine.database.get_database_stats(**filter_conditions)
+            
+            # 构建标题
+            if filter_conditions:
+                filter_desc = []
+                if filter_conditions.get('languages'):
+                    filter_desc.append(f"语言: {', '.join(filter_conditions['languages'])}")
+                if filter_conditions.get('domains'):
+                    filter_desc.append(f"领域: {', '.join(filter_conditions['domains'])}")
+                if filter_conditions.get('rule_types'):
+                    filter_desc.append(f"类型: {', '.join([rt.value for rt in filter_conditions['rule_types']])}")
+                if filter_conditions.get('tags'):
+                    filter_desc.append(f"标签: {', '.join(filter_conditions['tags'])}")
+                
+                title = f"📊 **CursorRules-MCP 规则库统计 (过滤条件: {'; '.join(filter_desc)})**"
+            else:
+                title = "📊 **CursorRules-MCP 规则库统计**"
+            
+            result_text = f"""
+{title}
 
 **规则统计**:
 - 总规则数: {stats['total_rules']}
-- 平均成功率: {stats['average_success_rate']:.1%}
+- 活跃规则数: {stats['active_rules']}
+- 版本总数: {stats['total_versions']}
+
+**分类统计**:
+- 支持语言: {stats['languages']} 种
+- 应用领域: {stats['domains']} 个
+- 规则类型: {stats['rule_types']} 种
+- 标签总数: {stats['total_tags']} 个
 
 **按类型分布**:
 """
-            for rule_type, count in stats['rules_by_type'].items():
+            # 添加详细分布信息
+            for rule_type, count in stats.get('rules_by_type', {}).items():
                 if count > 0:
                     result_text += f"- {rule_type}: {count} 条\n"
             
             result_text += f"""
 **按语言分布**:
 """
-            for lang, count in stats['rules_by_language'].items():
+            for lang, count in stats.get('rules_by_language', {}).items():
                 if count > 0:
                     result_text += f"- {lang}: {count} 条\n"
             
             result_text += f"""
 **按领域分布**:
 """
-            for domain, count in stats['rules_by_domain'].items():
+            for domain, count in stats.get('rules_by_domain', {}).items():
                 if count > 0:
                     result_text += f"- {domain}: {count} 条\n"
             
+            # 添加版本分布
+            if 'version_distribution' in stats and stats['version_distribution']:
+                result_text += f"""
+**版本分布**:
+"""
+                for rule_id, version_count in list(stats['version_distribution'].items())[:5]:
+                    result_text += f"- {rule_id}: {version_count} 个版本\n"
+                
+                if len(stats['version_distribution']) > 5:
+                    result_text += f"- ... 还有 {len(stats['version_distribution']) - 5} 个规则\n"
+            
+            # 添加使用情况统计
+            if 'usage_stats' in stats:
+                result_text += f"""
+**使用情况**:
+- 总使用次数: {stats['usage_stats'].get('total_usage', 0)}
+- 平均成功率: {stats['usage_stats'].get('average_success_rate', 0):.1%}
+- 最常用规则: {stats['usage_stats'].get('most_used_rule', '无')}
+"""
+            
             result_text += f"""
-**其他信息**:
-- 标签总数: {stats['total_tags']} 个
-- 加载时间: {stats['loaded_at']}
-
 **HTTP服务状态**:
 - 活跃连接: {len(self._active_connections)}
 - 服务器运行时间: {datetime.now().isoformat()}
@@ -548,6 +625,81 @@ class MCPHttpServer:
         except Exception as e:
             logger.error(f"获取统计信息时发生错误: {e}")
             return f"❌ 获取统计信息失败: {str(e)}"
+
+    async def _import_rules(self, content: str = "", file_path: str = "",
+                           format: str = "auto", validate: bool = True,
+                           merge: bool = False) -> str:
+        """导入规则的实现"""
+        try:
+            # 导入规则导入器
+            from .rule_import import UnifiedRuleImporter
+            
+            # 创建导入器
+            importer = UnifiedRuleImporter(
+                output_dir="data/rules/imported",
+                validate=validate,
+                merge=merge
+            )
+            
+            # 执行导入
+            if content:
+                # 直接从内容导入
+                if format == "auto":
+                    # 尝试自动检测格式
+                    if content.startswith('---'):
+                        format = "markdown"
+                    elif content.strip().startswith('{'):
+                        format = "json"
+                    else:
+                        format = "yaml"
+                
+                result = importer.import_from_content(content, format)
+            else:
+                # 从文件路径导入
+                if not file_path:
+                    return "❌ 必须提供 content 或 file_path 之一"
+                
+                result = importer.import_from_file(file_path, format)
+            
+            # 格式化结果
+            if result['success']:
+                result_text = f"""
+✅ **规则导入成功**
+
+**导入统计**:
+- 处理文件: {result.get('processed_files', 1)}
+- 导入规则: {result.get('imported_rules', 0)}
+- 跳过规则: {result.get('skipped_rules', 0)}
+- 格式: {result.get('detected_format', format)}
+
+"""
+                if result.get('imported_rule_ids'):
+                    result_text += "**已导入的规则ID**:\n"
+                    for rule_id in result['imported_rule_ids']:
+                        result_text += f"- {rule_id}\n"
+                
+                if result.get('warnings'):
+                    result_text += "\n**警告**:\n"
+                    for warning in result['warnings']:
+                        result_text += f"⚠️ {warning}\n"
+            else:
+                result_text = f"""
+❌ **规则导入失败**
+
+**错误信息**: {result.get('error', '未知错误')}
+
+"""
+                if result.get('details'):
+                    result_text += f"**详细信息**: {result['details']}\n"
+            
+            # 重新加载规则引擎
+            await self.rule_engine.reload()
+            
+            return result_text
+            
+        except Exception as e:
+            logger.error(f"导入规则时发生错误: {e}")
+            return f"❌ 导入失败: {str(e)}"
     
     async def _list_all_rules(self) -> str:
         """列出所有规则"""
@@ -606,7 +758,23 @@ class MCPHttpServer:
             '.js': 'javascript',
             '.ts': 'typescript',
             '.cpp': 'cpp',
+            '.hpp': 'cpp',
             '.c': 'c',
+            '.h': 'c',
+            '.cu': 'cuda',
+            '.cuh': 'cuda',
+            '.cu++': 'cuda',
+            '.cu++h': 'cuda',
+            '.cu++h++': 'cuda',
+            '.f': 'fortran',
+            '.f90': 'fortran',
+            '.f95': 'fortran',
+            '.f03': 'fortran',
+            '.f08': 'fortran',
+            '.f18': 'fortran',
+            '.f20': 'fortran',
+            '.f23': 'fortran',
+            '.sh': 'shell',
             '.java': 'java',
             '.go': 'go',
             '.rs': 'rust',
@@ -618,6 +786,14 @@ class MCPHttpServer:
             '.yml': 'yaml',
             '.json': 'json',
             '.xml': 'xml',
+            '.toml': 'toml',
+            '.ini': 'ini',
+            '.conf': 'conf',
+            '.cfg': 'conf',
+            '.config': 'conf',
+            '.settings': 'conf',
+            '.properties': 'conf',
+            '.env': 'conf',
             '.html': 'html',
             '.css': 'css'
         }
@@ -632,11 +808,11 @@ class MCPHttpServer:
         # 基于文件扩展名
         if file_path:
             ext = Path(file_path).suffix.lower()
-            if ext in ['.py', '.js', '.cpp', '.java', '.go', '.rs']:
+            if ext in ['.py', '.js', '.cpp','.hpp','.h','.c', '.java', '.go', '.rs', '.cu', '.cuh', '.cu++', '.cu++h', '.cu++h++']:
                 content_types.append('code')
             elif ext in ['.md', '.txt', '.rst']:
                 content_types.append('documentation')
-            elif ext in ['.yaml', '.yml', '.json', '.xml', '.toml']:
+            elif ext in ['.yaml', '.yml', '.json', '.xml', '.toml', '.ini', '.conf', '.cfg', '.config', '.settings', '.properties', '.env']:
                 content_types.append('configuration')
         
         # 基于内容特征
@@ -673,33 +849,41 @@ class MCPHttpServer:
     def run(self):
         """运行HTTP服务器"""
         logger.info(f"🚀 启动CursorRules-MCP HTTP服务器: http://{self.host}:{self.port}")
-        uvicorn.run(
-            self.app,
-            host=self.host,
-            port=self.port,
-            log_level="info"
-        )
+        if self.workers > 1:
+            logger.info(f"👥 使用 {self.workers} 个工作进程")
+            # 多进程模式需要使用导入字符串
+            uvicorn.run(
+                "src.cursorrules_mcp.http_server:create_app",
+                host=self.host,
+                port=self.port,
+                log_level="info",
+                workers=self.workers,
+                factory=True
+            )
+        else:
+            # 单进程模式可以直接传递app对象
+            uvicorn.run(
+                self.app,
+                host=self.host,
+                port=self.port,
+                log_level="info"
+            )
 
 
-async def main():
-    """主函数"""
-    import argparse
+def create_app():
+    """
+    应用程序工厂函数，用于多进程模式
+    从环境变量读取配置
     
-    parser = argparse.ArgumentParser(description="CursorRules-MCP HTTP服务器")
-    parser.add_argument("--rules-dir", default="data/rules", help="规则目录路径")
-    parser.add_argument("--host", default="localhost", help="服务器主机地址")
-    parser.add_argument("--port", type=int, default=8000, help="服务器端口")
+    Returns:
+        FastAPI应用实例
+    """
+    import os
     
-    args = parser.parse_args()
+    rules_dir = os.getenv("CURSORRULES_RULES_DIR", "data/rules")
+    host = os.getenv("CURSORRULES_HOST", "localhost")
+    port = int(os.getenv("CURSORRULES_PORT", "8000"))
+    workers = int(os.getenv("CURSORRULES_WORKERS", "1"))
     
-    server = MCPHttpServer(
-        rules_dir=args.rules_dir,
-        host=args.host,
-        port=args.port
-    )
-    
-    server.run()
-
-
-if __name__ == "__main__":
-    asyncio.run(main()) 
+    server = MCPHttpServer(rules_dir=rules_dir, host=host, port=port, workers=workers)
+    return server.app

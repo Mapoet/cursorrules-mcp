@@ -44,6 +44,9 @@ def main():
   # 指定自定义规则目录
   python scripts/start_http_server.py --rules-dir /path/to/rules
   
+  # 使用多个工作进程（生产环境推荐）
+  python scripts/start_http_server.py --workers 4
+  
 API端点:
   - GET  /health              - 健康检查
   - GET  /mcp/info            - MCP服务信息
@@ -86,6 +89,13 @@ API端点:
         help="启用自动重载（开发模式）"
     )
     
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="工作进程数量 (默认: 1，适用于生产环境多核CPU)"
+    )
+    
     args = parser.parse_args()
     
     # 设置日志级别
@@ -105,6 +115,7 @@ API端点:
     logger.info(f"🌐 服务地址: http://{args.host}:{args.port}")
     logger.info(f"📊 日志级别: {args.log_level}")
     logger.info(f"🔄 自动重载: {'启用' if args.reload else '禁用'}")
+    logger.info(f"👥 工作进程: {args.workers}")
     logger.info("=" * 60)
     logger.info("")
     logger.info("📋 可用端点:")
@@ -122,12 +133,23 @@ API端点:
         server = MCPHttpServer(
             rules_dir=args.rules_dir,
             host=args.host,
-            port=args.port
+            port=args.port,
+            workers=args.workers
         )
+        
+        # 设置环境变量，供多进程模式使用
+        import os
+        os.environ["CURSORRULES_RULES_DIR"] = args.rules_dir
+        os.environ["CURSORRULES_HOST"] = args.host
+        os.environ["CURSORRULES_PORT"] = str(args.port)
+        os.environ["CURSORRULES_WORKERS"] = str(args.workers)
         
         # 如果启用了重载，使用uvicorn命令行
         if args.reload:
             import uvicorn
+            # 注意：uvicorn的reload模式不支持多workers
+            if args.workers > 1:
+                logger.warning("⚠️  reload模式不支持多workers，将使用单进程模式")
             uvicorn.run(
                 "src.cursorrules_mcp.http_server:MCPHttpServer",
                 host=args.host,

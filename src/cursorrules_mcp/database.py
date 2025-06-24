@@ -395,21 +395,91 @@ class RuleDatabase:
         except Exception as e:
             logger.error(f"保存规则到文件失败 {file_path}: {e}")
     
-    def get_database_stats(self) -> Dict[str, Any]:
-        """获取数据库统计信息"""
+    def get_database_stats(self, languages: List[str] = None, 
+                           domains: List[str] = None,
+                           rule_types: List[RuleType] = None,
+                           tags: List[str] = None) -> Dict[str, Any]:
+        """获取数据库统计信息
+        
+        Args:
+            languages: 过滤的编程语言列表
+            domains: 过滤的应用领域列表
+            rule_types: 过滤的规则类型列表
+            tags: 过滤的标签列表
+        
+        Returns:
+            统计信息字典
+        """
+        # 获取所有规则或过滤后的规则
+        filtered_rules = list(self.rules.values())
+        
+        # 应用过滤条件
+        if languages:
+            filtered_rules = [r for r in filtered_rules if any(lang in r.languages for lang in languages)]
+        
+        if domains:
+            filtered_rules = [r for r in filtered_rules if any(domain in r.domains for domain in domains)]
+        
+        if rule_types:
+            filtered_rules = [r for r in filtered_rules if r.rule_type in rule_types]
+        
+        if tags:
+            filtered_rules = [r for r in filtered_rules if any(tag in r.tags for tag in tags)]
+        
+        # 计算基本统计
+        active_rules = [r for r in filtered_rules if r.active]
         total_versions = sum(len(versions) for versions in self.version_manager.version_history.values())
         
+        # 统计分布
+        rules_by_type = {}
+        rules_by_language = {}
+        rules_by_domain = {}
+        
+        for rule in filtered_rules:
+            # 按类型统计
+            rule_type = rule.rule_type.value
+            rules_by_type[rule_type] = rules_by_type.get(rule_type, 0) + 1
+            
+            # 按语言统计
+            for lang in rule.languages:
+                rules_by_language[lang] = rules_by_language.get(lang, 0) + 1
+            
+            # 按领域统计
+            for domain in rule.domains:
+                rules_by_domain[domain] = rules_by_domain.get(domain, 0) + 1
+        
+        # 计算使用统计
+        total_usage = sum(rule.usage_count for rule in filtered_rules)
+        success_rates = [rule.success_rate for rule in filtered_rules if rule.usage_count > 0]
+        average_success_rate = sum(success_rates) / len(success_rates) if success_rates else 0.0
+        
+        # 找出最常用的规则
+        most_used_rule = None
+        if filtered_rules:
+            most_used = max(filtered_rules, key=lambda r: r.usage_count)
+            if most_used.usage_count > 0:
+                most_used_rule = f"{most_used.name} ({most_used.usage_count} 次)"
+        
         return {
-            "total_rules": len(self.rules),
+            "total_rules": len(filtered_rules),
             "total_versions": total_versions,
-            "active_rules": len([r for r in self.rules.values() if r.active]),
-            "languages": len(self.rule_index["languages"]),
-            "domains": len(self.rule_index["domains"]),
-            "rule_types": len(self.rule_index["types"]),
-            "total_tags": len(self.rule_index["tags"]),
+            "active_rules": len(active_rules),
+            "languages": len(set().union(*[r.languages for r in filtered_rules]) if filtered_rules else set()),
+            "domains": len(set().union(*[r.domains for r in filtered_rules]) if filtered_rules else set()),
+            "rule_types": len(set(r.rule_type for r in filtered_rules)),
+            "total_tags": len(set().union(*[r.tags for r in filtered_rules]) if filtered_rules else set()),
             "version_distribution": {
                 rule_id: len(versions) 
                 for rule_id, versions in self.version_manager.version_history.items()
+                if rule_id in [r.rule_id for r in filtered_rules]
+            },
+            "rules_by_type": rules_by_type,
+            "rules_by_language": rules_by_language,
+            "rules_by_domain": rules_by_domain,
+            "usage_stats": {
+                "total_usage": total_usage,
+                "average_success_rate": average_success_rate,
+                "most_used_rule": most_used_rule or "无"
             }
         }
     

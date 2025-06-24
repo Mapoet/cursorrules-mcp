@@ -300,8 +300,19 @@ class CursorRulesMCPServer:
                 return f"❌ 提示增强失败: {str(e)}"
 
         @self.mcp.tool()
-        async def get_statistics() -> str:
+        async def get_statistics(
+            languages: str = "",
+            domains: str = "",
+            rule_types: str = "",
+            tags: str = ""
+        ) -> str:
             """获取规则库统计信息
+            
+            Args:
+                languages: 过滤的编程语言（逗号分隔）
+                domains: 过滤的应用领域（逗号分隔）
+                rule_types: 过滤的规则类型（逗号分隔）
+                tags: 过滤的标签（逗号分隔）
             
             Returns:
                 详细的统计报告
@@ -310,11 +321,38 @@ class CursorRulesMCPServer:
                 # 确保初始化
                 await self._ensure_initialized()
                 
+                # 构建过滤条件
+                filter_conditions = {}
+                if languages:
+                    filter_conditions['languages'] = self._parse_list_param(languages)
+                if domains:
+                    filter_conditions['domains'] = self._parse_list_param(domains)
+                if rule_types:
+                    filter_conditions['rule_types'] = [RuleType(rt.strip()) for rt in rule_types.split(',') if rt.strip()]
+                if tags:
+                    filter_conditions['tags'] = self._parse_list_param(tags)
+                
                 # 获取统计信息
-                stats = self.rule_engine.database.get_database_stats()
+                stats = self.rule_engine.database.get_database_stats(**filter_conditions)
+                
+                # 构建标题
+                if filter_conditions:
+                    filter_desc = []
+                    if filter_conditions.get('languages'):
+                        filter_desc.append(f"语言: {', '.join(filter_conditions['languages'])}")
+                    if filter_conditions.get('domains'):
+                        filter_desc.append(f"领域: {', '.join(filter_conditions['domains'])}")
+                    if filter_conditions.get('rule_types'):
+                        filter_desc.append(f"类型: {', '.join([rt.value for rt in filter_conditions['rule_types']])}")
+                    if filter_conditions.get('tags'):
+                        filter_desc.append(f"标签: {', '.join(filter_conditions['tags'])}")
+                    
+                    title = f"📊 **CursorRules-MCP 规则库统计 (过滤条件: {'; '.join(filter_desc)})**"
+                else:
+                    title = "📊 **CursorRules-MCP 规则库统计**"
                 
                 result_text = f"""
-📊 **CursorRules-MCP 规则库统计**
+{title}
 
 **规则统计**:
 - 总规则数: {stats['total_rules']}
@@ -335,11 +373,114 @@ class CursorRulesMCPServer:
                 if len(stats['version_distribution']) > 5:
                     result_text += f"- ... 还有 {len(stats['version_distribution']) - 5} 个规则\n"
                 
+                # 添加使用情况统计
+                if 'usage_stats' in stats:
+                    result_text += f"""
+**使用情况**:
+- 总使用次数: {stats['usage_stats'].get('total_usage', 0)}
+- 平均成功率: {stats['usage_stats'].get('average_success_rate', 0):.1%}
+- 最常用规则: {stats['usage_stats'].get('most_used_rule', '无')}
+"""
+                
                 return result_text
                 
             except Exception as e:
                 logger.error(f"获取统计信息时发生错误: {e}")
                 return f"❌ 统计信息获取失败: {str(e)}"
+
+        @self.mcp.tool()
+        async def import_rules(
+            content: str = "",
+            file_path: str = "",
+            format: str = "auto",
+            validate: bool = True,
+            merge: bool = False
+        ) -> str:
+            """导入规则
+            
+            Args:
+                content: 规则内容（如果提供了content，则忽略file_path）
+                file_path: 规则文件路径
+                format: 格式类型 (auto, markdown, yaml, json)
+                validate: 是否验证规则
+                merge: 是否合并重复规则
+            
+            Returns:
+                导入结果报告
+            """
+            try:
+                # 确保初始化
+                await self._ensure_initialized()
+                
+                # 导入规则导入器
+                from .rule_import import UnifiedRuleImporter
+                
+                # 创建导入器
+                importer = UnifiedRuleImporter(
+                    output_dir="data/rules/imported",
+                    validate=validate,
+                    merge=merge
+                )
+                
+                # 执行导入
+                if content:
+                    # 直接从内容导入
+                    if format == "auto":
+                        # 尝试自动检测格式
+                        if content.startswith('---'):
+                            format = "markdown"
+                        elif content.strip().startswith('{'):
+                            format = "json"
+                        else:
+                            format = "yaml"
+                    
+                    result = importer.import_from_content(content, format)
+                else:
+                    # 从文件路径导入
+                    if not file_path:
+                        return "❌ 必须提供 content 或 file_path 之一"
+                    
+                    result = importer.import_from_file(file_path, format)
+                
+                # 格式化结果
+                if result['success']:
+                    result_text = f"""
+✅ **规则导入成功**
+
+**导入统计**:
+- 处理文件: {result.get('processed_files', 1)}
+- 导入规则: {result.get('imported_rules', 0)}
+- 跳过规则: {result.get('skipped_rules', 0)}
+- 格式: {result.get('detected_format', format)}
+
+"""
+                    if result.get('imported_rule_ids'):
+                        result_text += "**已导入的规则ID**:\n"
+                        for rule_id in result['imported_rule_ids']:
+                            result_text += f"- {rule_id}\n"
+                    
+                    if result.get('warnings'):
+                        result_text += "\n**警告**:\n"
+                        for warning in result['warnings']:
+                            result_text += f"⚠️ {warning}\n"
+                else:
+                    result_text = f"""
+❌ **规则导入失败**
+
+**错误信息**: {result.get('error', '未知错误')}
+
+"""
+                    if result.get('details'):
+                        result_text += f"**详细信息**: {result['details']}\n"
+                
+                # 重新加载规则引擎
+                await self.rule_engine.reload()
+                
+                return result_text
+                
+            except Exception as e:
+                logger.error(f"导入规则时发生错误: {e}")
+                return f"❌ 导入失败: {str(e)}"
     
     def _setup_resources(self):
         """设置MCP资源"""
