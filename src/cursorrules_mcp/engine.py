@@ -16,6 +16,8 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, Set, Tuple
 from datetime import datetime
 import re
+import yaml
+from enum import Enum
 
 from .models import (
     CursorRule, RuleType, ContentType, TaskType, ValidationSeverity,
@@ -24,10 +26,66 @@ from .models import (
     SearchFilter, KnowledgeItem, KnowledgeType
 )
 
+# 配置日志
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # 导入数据库模块
 from .database import get_rule_database, initialize_rule_database
+
+class PromptTemplate:
+    """可扩展的Prompt模板，支持领域/语言/内容类型等元数据和模板内容。"""
+    def __init__(self, template_id, name, template, domains=None, languages=None, content_types=None, description=None, priority=0, source=None):
+        self.template_id = template_id
+        self.name = name
+        self.template = template  # 模板字符串，含{rules}和{content}
+        self.domains = domains or []
+        self.languages = languages or []
+        self.content_types = content_types or []
+        self.description = description or ""
+        self.priority = priority
+        self.source = source  # 来源文件名
+
+    def render(self, rules, content):
+        return self.template.format(rules=rules, content=content)
+
+# 支持从YAML/Markdown导入prompt模板，结构与规则类似
+def import_prompt_templates_from_file(file_path):
+    import yaml, re
+    templates = []
+    with open(file_path, 'r', encoding='utf-8') as f:
+        if file_path.endswith('.yaml') or file_path.endswith('.yml'):
+            data = yaml.safe_load(f)
+            for item in data.get('templates', []):
+                templates.append(PromptTemplate(
+                    template_id=item.get('template_id', ''),
+                    name=item.get('name', ''),
+                    template=item.get('template', ''),
+                    domains=item.get('domains', []),
+                    languages=item.get('languages', []),
+                    content_types=item.get('content_types', []),
+                    description=item.get('description', ''),
+                    priority=item.get('priority', 0),
+                    source=file_path
+                ))
+        elif file_path.endswith('.md'):
+            content = f.read()
+            for match in re.finditer(r'# (.+?)\n([\s\S]+?)(?=\n# |\Z)', content):
+                name, template = match.groups()
+                templates.append(PromptTemplate(
+                    template_id=name.strip().lower().replace(' ', '_'),
+                    name=name.strip(),
+                    template=template.strip(),
+                    source=file_path
+                ))
+    return templates
+
+class OutputMode(Enum):
+    RESULT_ONLY = 'result_only'
+    RESULT_WITH_PROMPT = 'result_with_prompt'
+    RESULT_WITH_RULES = 'result_with_rules'
+    RESULT_WITH_TEMPLATE = 'result_with_template'
+    FULL = 'full'
 
 class RuleEngine:
     """
@@ -36,13 +94,16 @@ class RuleEngine:
     负责规则的加载、搜索、匹配、验证和应用逻辑
     """
     
-    def __init__(self, rules_dir: str = "data/rules"):
+    def __init__(self, rules_dir: str = "data/rules", templates_dir: str = None):
         """初始化规则引擎
         
         Args:
             rules_dir: 规则目录路径
+            templates_dir: 模板目录路径（可选，默认 data/templates）
         """
-        self.rules_dir = Path(rules_dir)
+        from .config import get_config
+        self.rules_dir = Path(rules_dir or get_config().rules_dir)
+        self.templates_dir = Path(templates_dir or getattr(get_config(), 'templates_dir', 'data/templates'))
         self.rules: Dict[str, CursorRule] = {}
         self.tag_index: Dict[str, Set[str]] = {}  # tag -> rule_ids
         self.language_index: Dict[str, Set[str]] = {}  # language -> rule_ids
@@ -60,6 +121,9 @@ class RuleEngine:
             'markdown': ['markdownlint'],
             'yaml': ['yamllint']
         }
+        
+        self.prompt_templates = {}  # template_id -> PromptTemplate
+        self.prompt_templates_by_source = {}  # source -> {template_id: PromptTemplate}
     
     async def initialize(self) -> None:
         """异步初始化规则引擎"""
@@ -72,23 +136,20 @@ class RuleEngine:
         logger.info(f"规则引擎初始化完成，加载了 {len(self.rules)} 条规则")
     
     async def load_rules(self) -> None:
-        """加载所有规则文件"""
+        """加载所有规则文件（仅遍历self.rules_dir，不含self.templates_dir）"""
         self.rules.clear()
-        
         if not self.rules_dir.exists():
             logger.warning(f"规则目录不存在: {self.rules_dir}")
             return
-        
         # 加载JSON格式规则
-        json_files = list(self.rules_dir.rglob("*.json"))
+        json_files = [f for f in self.rules_dir.rglob("*.json") if self.templates_dir not in f.parents]
         for json_file in json_files:
             await self._load_json_rules(json_file)
-        
         # 加载YAML格式规则
-        yaml_files = list(self.rules_dir.rglob("*.yaml")) + list(self.rules_dir.rglob("*.yml"))
+        yaml_files = [f for f in self.rules_dir.rglob("*.yaml") if self.templates_dir not in f.parents]
+        yaml_files += [f for f in self.rules_dir.rglob("*.yml") if self.templates_dir not in f.parents]
         for yaml_file in yaml_files:
             await self._load_yaml_rules(yaml_file)
-        
         self.loaded_at = datetime.utcnow()
         logger.info(f"从 {len(json_files) + len(yaml_files)} 个文件加载了 {len(self.rules)} 条规则")
     
@@ -116,7 +177,6 @@ class RuleEngine:
     async def _load_yaml_rules(self, file_path: Path) -> None:
         """加载YAML格式的规则文件"""
         try:
-            import yaml
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = yaml.safe_load(f)
                 
@@ -359,25 +419,47 @@ class RuleEngine:
             "matched_tags": list(set(search_filter.tags or []) & set(rule.tags))
         }
     
-    async def validate_content(self, content: str, context: MCPContext) -> ValidationResult:
-        """验证内容是否符合规则
-        
+    async def validate_content(self, content: str, file_path: str = "", languages: str = "", content_types: str = "", domains: str = "", output_mode: 'OutputMode' = OutputMode.RESULT_ONLY) -> dict:
+        """
+        校验内容合规性，支持枚举型输出模式。
         Args:
-            content: 要验证的内容
-            context: MCP上下文
-            
+            content (str): 待校验内容。
+            file_path (str, optional): 文件路径。
+            languages (str, optional): 语言。
+            content_types (str, optional): 内容类型。
+            domains (str, optional): 领域。
+            output_mode (OutputMode): 输出模式，详见OutputMode枚举。
         Returns:
-            验证结果
+            dict: 校验结果及所需附加信息。
+        OutputMode说明：
+            - result_only: 仅返回校验结果（success, passed, problems）
+            - result_with_prompt: 返回校验结果和prompt
+            - result_with_rules: 返回校验结果和规则详情
+            - result_with_template: 返回校验结果和模板信息
+            - full: 返回全部信息（校验结果、prompt、规则、模板信息）
         """
         issues = []
         suggestions = []
         applied_rules = []
         
+        # 解析参数
+        languages_list = languages.split(',') if languages else []
+        domains_list = domains.split(',') if domains else []
+        content_types_list = content_types.split(',') if content_types else []
+        
+        # 从文件路径推断内容类型
+        if file_path and not content_types_list:
+            file_ext = Path(file_path).suffix.lower()
+            if file_ext in ['.py', '.js', '.ts', '.cpp', '.c', '.java']:
+                content_types_list.append(ContentType.CODE)
+            elif file_ext in ['.md', '.txt', '.rst']:
+                content_types_list.append(ContentType.DOCUMENTATION)
+        
         # 获取适用的规则
         search_filter = SearchFilter(
-            languages=context.languages,
-            domains=context.domains,
-            content_types=context.content_types,
+            languages=languages_list,
+            domains=domains_list,
+            content_types=content_types_list,
             limit=50
         )
         
@@ -388,7 +470,7 @@ class RuleEngine:
             rule = applicable_rule.rule
             
             # 执行规则验证
-            rule_issues = await self._validate_rule(content, rule, context)
+            rule_issues = await self._validate_rule(content, rule, applicable_rule.application_context)
             issues.extend(rule_issues)
             
             if rule_issues:
@@ -401,22 +483,35 @@ class RuleEngine:
         # 计算总体分数
         total_score = self._calculate_validation_score(issues)
         
-        return ValidationResult(
-            is_valid=len(issues) == 0,
-            score=total_score,
-            issues=issues,
-            suggestions=suggestions,
-            applied_rules=applied_rules,
-            validation_time=datetime.utcnow()
-        )
+        result = {
+            'success': len(issues) == 0,
+            'passed': len(issues) == 0,
+            'problems': issues,
+            'score': total_score,
+            'applied_rules': applied_rules,
+            'validation_time': datetime.utcnow()
+        }
+        
+        if output_mode == OutputMode.RESULT_WITH_PROMPT:
+            prompt = self.generate_validation_prompt(content, languages_list, content_types_list, domains_list)
+            result['prompt'] = prompt
+        if output_mode == OutputMode.RESULT_WITH_RULES:
+            result['rules'] = applicable_rules
+        if output_mode == OutputMode.RESULT_WITH_TEMPLATE:
+            result['template_info'] = self.get_prompt_template_info(languages_list, content_types_list, domains_list)
+        
+        if output_mode == OutputMode.RESULT_ONLY:
+            # 只保留最简结果
+            return {k: result[k] for k in ['success', 'passed', 'problems']}
+        return result
     
-    async def _validate_rule(self, content: str, rule: CursorRule, context: MCPContext) -> List[ValidationIssue]:
+    async def _validate_rule(self, content: str, rule: CursorRule, application_context: Dict[str, Any]) -> List[ValidationIssue]:
         """对单个规则执行验证"""
         issues = []
         
         for condition in rule.rules:
             # 检查条件是否适用
-            if not await self._is_condition_applicable(condition, context):
+            if not await self._is_condition_applicable(condition, application_context):
                 continue
             
             # 执行具体验证
@@ -425,24 +520,22 @@ class RuleEngine:
         
         return issues
     
-    async def _is_condition_applicable(self, condition: RuleCondition, context: MCPContext) -> bool:
+    async def _is_condition_applicable(self, condition: RuleCondition, application_context: Dict[str, Any]) -> bool:
         """检查条件是否适用于当前上下文"""
         # 基于条件的触发条件判断
         condition_str = condition.condition.lower()
         
-        # 检查文件类型匹配
-        if context.file_path:
-            file_ext = Path(context.file_path).suffix.lower()
-            if any(lang in condition_str for lang in ['python', 'py']) and file_ext != '.py':
+        # 检查语言匹配
+        if 'matched_languages' in application_context:
+            if any(lang in condition_str for lang in ['python', 'py']) and 'python' not in application_context['matched_languages']:
                 return False
-            if any(lang in condition_str for lang in ['cpp', 'c++']) and file_ext not in ['.cpp', '.cc', '.cxx']:
+            if any(lang in condition_str for lang in ['cpp', 'c++']) and not any(lang in application_context['matched_languages'] for lang in ['cpp', 'c++']):
                 return False
         
-        # 检查内容类型匹配
-        if context.content_types:
-            content_type_names = [ct.lower() for ct in context.content_types]
-            if 'function' in condition_str and 'code' not in content_type_names:
-                return False
+        # 检查领域匹配
+        if 'matched_domains' in application_context:
+            if any(domain in condition_str for domain in application_context['matched_domains']):
+                return True
         
         return True
     
@@ -762,6 +855,13 @@ class RuleEngine:
         
         return result
     
+    async def reload(self) -> None:
+        """重新加载规则引擎"""
+        logger.info("重新加载规则引擎...")
+        await self.load_rules()
+        self.build_indexes()
+        logger.info(f"规则引擎重新加载完成，加载了 {len(self.rules)} 条规则")
+
     async def get_statistics(self) -> Dict[str, Any]:
         """获取规则引擎统计信息"""
         return {
@@ -781,4 +881,115 @@ class RuleEngine:
             "total_tags": len(self.tag_index),
             "loaded_at": self.loaded_at.isoformat() if self.loaded_at else None,
             "average_success_rate": sum(r.success_rate for r in self.rules.values()) / len(self.rules) if self.rules else 0.0
+        }
+
+    def load_prompt_templates(self, template_files=None, mode='append'):
+        """批量导入prompt模板文件，默认从self.templates_dir加载所有模板"""
+        if mode == 'replace':
+            self.prompt_templates.clear()
+            self.prompt_templates_by_source.clear()
+        if template_files is None:
+            template_files = list(self.templates_dir.rglob("*.yaml")) + list(self.templates_dir.rglob("*.yml")) + list(self.templates_dir.rglob("*.md"))
+        for file_path in template_files:
+            templates = import_prompt_templates_from_file(file_path)
+            if mode == 'grouped':
+                if file_path not in self.prompt_templates_by_source:
+                    self.prompt_templates_by_source[file_path] = {}
+                for t in templates:
+                    self.prompt_templates_by_source[file_path][t.template_id] = t
+            else:
+                for t in templates:
+                    self.prompt_templates[t.template_id] = t
+
+    def select_prompt_template(self, domains=None, languages=None, content_types=None, source=None):
+        """自动选择最优模板，支持优先级和分组。source指定时只在该来源分组内选，否则全局选。"""
+        candidates = []
+        if source and source in self.prompt_templates_by_source:
+            candidates = list(self.prompt_templates_by_source[source].values())
+        else:
+            candidates = list(self.prompt_templates.values())
+        # 匹配并按priority降序排序
+        filtered = []
+        for t in candidates:
+            score = 0
+            if domains and set(t.domains) & set(domains):
+                score += 10
+            if languages and set(t.languages) & set(languages):
+                score += 5
+            if content_types and set(t.content_types) & set(content_types):
+                score += 2
+            filtered.append((score + t.priority, t))
+        filtered.sort(reverse=True, key=lambda x: x[0])
+        return filtered[0][1] if filtered else (candidates[0] if candidates else None)
+
+
+
+    def get_rule_statistics(self, languages: str = "", domains: str = "", rule_types: str = "", tags: str = "") -> dict:
+        """
+        获取规则统计信息，支持多维度过滤。
+        """
+        # 过滤规则
+        filtered_rules = list(self.rules.values())
+        if languages:
+            langs = [l.strip() for l in languages.split(',') if l.strip()]
+            filtered_rules = [r for r in filtered_rules if any(lang in r.languages for lang in langs)]
+        if domains:
+            doms = [d.strip() for d in domains.split(',') if d.strip()]
+            filtered_rules = [r for r in filtered_rules if any(domain in r.domains for domain in doms)]
+        if rule_types:
+            types = [t.strip().lower() for t in rule_types.split(',') if t.strip()]
+            filtered_rules = [r for r in filtered_rules if r.rule_type.value in types]
+        if tags:
+            taglist = [t.strip() for t in tags.split(',') if t.strip()]
+            filtered_rules = [r for r in filtered_rules if any(tag in r.tags for tag in taglist)]
+        # 统计
+        by_language = {}
+        by_domain = {}
+        by_type = {}
+        by_tag = {}
+        for r in filtered_rules:
+            for lang in r.languages:
+                by_language[lang] = by_language.get(lang, 0) + 1
+            for dom in r.domains:
+                by_domain[dom] = by_domain.get(dom, 0) + 1
+            by_type[r.rule_type.value] = by_type.get(r.rule_type.value, 0) + 1
+            for tag in r.tags:
+                by_tag[tag] = by_tag.get(tag, 0) + 1
+        return {
+            "total": len(filtered_rules),
+            "by_language": by_language,
+            "by_domain": by_domain,
+            "by_type": by_type,
+            "by_tag": by_tag
+        }
+
+    def get_template_statistics(self, languages: str = "", domains: str = "", tags: str = "") -> dict:
+        """
+        获取模板统计信息，支持按语言、分组、优先级等维度统计。
+        """
+        templates = list(self.prompt_templates.values())
+        if languages:
+            langs = [l.strip() for l in languages.split(',') if l.strip()]
+            templates = [t for t in templates if any(lang in t.languages for lang in langs)]
+        if domains:
+            doms = [d.strip() for d in domains.split(',') if d.strip()]
+            templates = [t for t in templates if any(domain in t.domains for domain in doms)]
+        if tags:
+            taglist = [t.strip() for t in tags.split(',') if t.strip()]
+            templates = [t for t in templates if any(tag in getattr(t, 'tags', []) for tag in taglist)]
+        by_language = {}
+        by_group = {}  # 按 source 分组
+        by_priority = {}
+        for t in templates:
+            for lang in t.languages:
+                by_language[lang] = by_language.get(lang, 0) + 1
+            group = t.source or 'unknown'
+            by_group[group] = by_group.get(group, 0) + 1
+            prio = str(t.priority)
+            by_priority[prio] = by_priority.get(prio, 0) + 1
+        return {
+            "total": len(templates),
+            "by_language": by_language,
+            "by_group": by_group,
+            "by_priority": by_priority
         }

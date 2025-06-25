@@ -14,8 +14,8 @@ log_dir: "logs"
 # 服务器配置
 server:
   host: "localhost"
-  port: 8000
-  workers: 1
+  port: 8001
+  workers: 4
   reload: false
   log_level: "INFO"
 

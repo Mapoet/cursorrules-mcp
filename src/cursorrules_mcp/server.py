@@ -181,7 +181,8 @@ class CursorRulesMCPServer:
             languages: str = "",
             domains: str = "",
             content_types: str = "",
-            project_context: str = ""
+            project_context: str = "",
+            output_mode: str = "detailed"
         ) -> str:
             """验证内容是否符合规则
             
@@ -192,6 +193,7 @@ class CursorRulesMCPServer:
                 domains: 应用领域（逗号分隔）
                 content_types: 内容类型（逗号分隔）
                 project_context: 项目上下文信息
+                output_mode: 验证结果输出模式
             
             Returns:
                 详细的验证报告
@@ -210,38 +212,75 @@ class CursorRulesMCPServer:
                 )
                 
                 # 执行验证
-                validation_result = await self.rule_engine.validate_content(content, context)
+                validation_result = await self.rule_engine.validate_content(
+                    content=content,
+                    context=context,
+                    output_mode=output_mode
+                )
                 
                 # 格式化验证结果
+                # 从context获取语言和推断内容类型
+                languages = [context.primary_language] if context.primary_language else []
+                domains = [context.domain] if context.domain else []
+                
+                # 推断内容类型
+                content_types = []
+                if context.current_file:
+                    file_ext = Path(context.current_file).suffix.lower()
+                    if file_ext in ['.py', '.js', '.ts', '.cpp', '.c', '.java']:
+                        content_types.append("code")
+                    elif file_ext in ['.md', '.txt', '.rst']:
+                        content_types.append("documentation")
+                
                 result_text = f"""
 🔍 **内容验证报告**
 
 **验证内容**: {len(content)} 字符
 **文件路径**: {file_path or '未指定'}
-**检测到的语言**: {', '.join(context.languages) if context.languages else '未知'}
-**内容类型**: {', '.join(context.content_types) if context.content_types else '未知'}
+**检测到的语言**: {', '.join(languages) if languages else '未知'}
+**内容类型**: {', '.join(content_types) if content_types else '未知'}
 
 ---
 
 **验证结果**: {'✅ 通过' if validation_result.is_valid else '❌ 发现问题'}
 **总体评分**: {validation_result.score:.1%}
-
 """
                 
-                if validation_result.violations:
-                    result_text += "**发现的问题**:\n"
-                    for i, violation in enumerate(validation_result.violations, 1):
-                        severity_icon = {"error": "🚫", "warning": "⚠️", "info": "ℹ️"}.get(violation.severity.value, "•")
-                        result_text += f"{i}. {severity_icon} **{violation.rule_name}** (第{violation.line_number}行)\n"
-                        result_text += f"   {violation.message}\n"
-                        if violation.suggestion:
-                            result_text += f"   💡 建议: {violation.suggestion}\n"
-                        result_text += "\n"
+                # 添加问题详情
+                if validation_result.issues:
+                    result_text += "\n**发现的问题**:\n"
+                    
+                    # 按严重程度分组
+                    by_severity = {}
+                    for issue in validation_result.issues:
+                        severity = issue.severity.value
+                        if severity not in by_severity:
+                            by_severity[severity] = []
+                        by_severity[severity].append(issue)
+                    
+                    # 显示问题
+                    for severity in ['error', 'warning', 'info']:
+                        if severity in by_severity:
+                            issues = by_severity[severity]
+                            icon = {'error': '🔴', 'warning': '🟡', 'info': '🔵'}[severity]
+                            result_text += f"{icon} **{severity.upper()}** ({len(issues)}个):\n"
+                            
+                            for issue in issues[:5]:  # 最多显示5个
+                                location = f"第{issue.line_number}行" if issue.line_number else "未知位置"
+                                result_text += f"- {location}: {issue.message}\n"
+                            
+                            if len(issues) > 5:
+                                result_text += f"- ... 还有 {len(issues) - 5} 个{severity}问题\n"
                 
+                # 添加建议
                 if validation_result.suggestions:
-                    result_text += "**改进建议**:\n"
-                    for i, suggestion in enumerate(validation_result.suggestions, 1):
-                        result_text += f"{i}. {suggestion}\n"
+                    result_text += "\n**改进建议**:\n"
+                    for suggestion in validation_result.suggestions[:3]:  # 最多显示3个建议
+                        result_text += f"💡 {suggestion}\n"
+                
+                # 添加应用的规则
+                if validation_result.applied_rules:
+                    result_text += f"\n**应用的规则**: {', '.join(validation_result.applied_rules)}\n"
                 
                 return result_text
                 
@@ -396,88 +435,51 @@ class CursorRulesMCPServer:
             validate: bool = True,
             merge: bool = False
         ) -> str:
-            """导入规则
+            """导入规则（仅支持 content 参数）
             
             Args:
-                content: 规则内容（如果提供了content，则忽略file_path）
-                file_path: 规则文件路径
+                content: 规则内容（必须提供）
+                file_path: 规则文件路径（已废弃，不支持）
                 format: 格式类型 (auto, markdown, yaml, json)
                 validate: 是否验证规则
                 merge: 是否合并重复规则
             
             Returns:
-                导入结果报告
+                导入结果报告（字符串）
             """
             try:
-                # 确保初始化
                 await self._ensure_initialized()
-                
-                # 导入规则导入器
                 from .rule_import import UnifiedRuleImporter
-                
-                # 创建导入器
-                importer = UnifiedRuleImporter(
-                    output_dir="data/rules/imported",
-                    validate=validate,
-                    merge=merge
-                )
-                
-                # 执行导入
-                if content:
-                    # 直接从内容导入
-                    if format == "auto":
-                        # 尝试自动检测格式
-                        if content.startswith('---'):
-                            format = "markdown"
-                        elif content.strip().startswith('{'):
-                            format = "json"
-                        else:
-                            format = "yaml"
-                    
-                    result = importer.import_from_content(content, format)
-                else:
-                    # 从文件路径导入
-                    if not file_path:
-                        return "❌ 必须提供 content 或 file_path 之一"
-                    
-                    result = importer.import_from_file(file_path, format)
-                
-                # 格式化结果
-                if result['success']:
-                    result_text = f"""
-✅ **规则导入成功**
+                importer = UnifiedRuleImporter(save_to_database=True)
 
-**导入统计**:
-- 处理文件: {result.get('processed_files', 1)}
-- 导入规则: {result.get('imported_rules', 0)}
-- 跳过规则: {result.get('skipped_rules', 0)}
-- 格式: {result.get('detected_format', format)}
-
-"""
-                    if result.get('imported_rule_ids'):
-                        result_text += "**已导入的规则ID**:\n"
-                        for rule_id in result['imported_rule_ids']:
-                            result_text += f"- {rule_id}\n"
-                    
-                    if result.get('warnings'):
-                        result_text += "\n**警告**:\n"
-                        for warning in result['warnings']:
-                            result_text += f"⚠️ {warning}\n"
-                else:
-                    result_text = f"""
-❌ **规则导入失败**
-
-**错误信息**: {result.get('error', '未知错误')}
-
-"""
-                    if result.get('details'):
-                        result_text += f"**详细信息**: {result['details']}\n"
-                
-                # 重新加载规则引擎
-                await self.rule_engine.reload()
-                
-                return result_text
-                
+                # 只允许 content
+                if not content:
+                    return "❌ 必须通过 content 上传规则内容，不支持 file_path 参数"
+                if format == "auto":
+                    if content.startswith('---'):
+                        format = "markdown"
+                    elif content.strip().startswith('{'):
+                        format = "json"
+                    else:
+                        format = "yaml"
+                import tempfile
+                import os
+                try:
+                    ext_map = {'markdown': '.md', 'yaml': '.yaml', 'json': '.json'}
+                    ext = ext_map.get(format, '.txt')
+                    with tempfile.NamedTemporaryFile(mode='w', suffix=ext, delete=False, encoding='utf-8') as temp_file:
+                        temp_file.write(content)
+                        temp_path = temp_file.name
+                    rules = await importer.import_rules_async([temp_path])
+                    os.unlink(temp_path)
+                    await self.rule_engine.reload()
+                    if rules:
+                        rule_ids = ', '.join(rule.rule_id for rule in rules)
+                        return f"✅ 成功导入 {len(rules)} 条规则到数据库\n规则ID: {rule_ids}"
+                    else:
+                        return "⚠️ 未导入任何规则，请检查内容格式。"
+                except Exception as e:
+                    return f"❌ 导入失败: {str(e)}"
             except Exception as e:
                 logger.error(f"导入规则时发生错误: {e}")
                 return f"❌ 导入失败: {str(e)}"

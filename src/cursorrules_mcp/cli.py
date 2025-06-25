@@ -17,6 +17,7 @@ import logging
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+import os
 
 from .config import get_config_manager, create_default_config, ConfigManager
 from .engine import RuleEngine
@@ -69,11 +70,11 @@ class CLI:
             elif parsed_args.command == 'config':
                 return await self._manage_config(parsed_args)
             elif parsed_args.command == 'stats':
-                return await self._show_stats(parsed_args)
+                return await self._get_statistics(parsed_args)
             elif parsed_args.command == 'test':
                 return await self._test_tools(parsed_args)
             elif parsed_args.command == 'import':
-                return await self._import_rules(parsed_args)
+                return await self._import_resources(parsed_args)
             else:
                 parser.print_help()
                 return 1
@@ -129,11 +130,19 @@ class CLI:
         search_parser.add_argument('--format', choices=['text', 'json'], default='text', help='输出格式')
         
         # 验证命令
-        validate_parser = subparsers.add_parser('validate', help='验证文件内容')
-        validate_parser.add_argument('files', nargs='+', help='要验证的文件')
-        validate_parser.add_argument('--language', '-l', help='强制指定编程语言')
-        validate_parser.add_argument('--format', choices=['text', 'json'], default='text', help='输出格式')
-        validate_parser.add_argument('--fix', action='store_true', help='尝试自动修复问题')
+        validate_parser = subparsers.add_parser('validate_content', help='校验内容合规性')
+        validate_parser.add_argument('content', help='待校验内容')
+        validate_parser.add_argument('--file_path', help='文件路径，仅用于推断语言类型')
+        validate_parser.add_argument('--languages', help='语言，如python,markdown')
+        validate_parser.add_argument('--content_types', help='内容类型，如code,documentation')
+        validate_parser.add_argument('--domains', help='领域')
+        validate_parser.add_argument('--output_mode', choices=['result_only', 'result_with_prompt', 'result_with_rules', 'result_with_template', 'full'], default='result_only', help='输出模式：\n'
+            '  result_only: 仅返回校验结果（success, passed, problems）\n'
+            '  result_with_prompt: 返回校验结果和 prompt\n'
+            '  result_with_rules: 返回校验结果和规则详情\n'
+            '  result_with_template: 返回校验结果和模板信息\n'
+            '  full: 返回全部信息（校验结果、prompt、规则、模板信息）\n'
+            '默认 result_only')
         
         # 配置命令
         config_parser = subparsers.add_parser('config', help='配置管理')
@@ -152,8 +161,12 @@ class CLI:
         config_get_parser.add_argument('key', help='配置键')
         
         # 统计命令
-        stats_parser = subparsers.add_parser('stats', help='显示统计信息')
-        stats_parser.add_argument('--format', choices=['text', 'json'], default='text', help='输出格式')
+        stats_parser = subparsers.add_parser('stats', help='获取规则与模板统计信息')
+        stats_parser.add_argument('--resource_type', choices=['rules', 'templates', 'all'], default='rules', help='统计对象类型：rules（规则）、templates（模板）、all（全部）')
+        stats_parser.add_argument('--languages', help='语言过滤')
+        stats_parser.add_argument('--domains', help='领域过滤')
+        stats_parser.add_argument('--rule_types', help='规则类型过滤（仅规则）')
+        stats_parser.add_argument('--tags', help='标签过滤')
         
         # 测试命令
         test_parser = subparsers.add_parser('test', help='测试验证工具')
@@ -161,7 +174,7 @@ class CLI:
         test_parser.add_argument('--tool', '-t', help='测试特定工具')
         
         # 导入命令
-        import_parser = subparsers.add_parser('import', help='导入多格式规则文件')
+        import_parser = subparsers.add_parser('import', help='导入规则或模板文件')
         import_parser.add_argument('paths', nargs='+', help='要导入的文件或目录路径')
         import_parser.add_argument('--format', choices=['auto', 'markdown', 'yaml', 'json'], 
                                  default='auto', help='指定文件格式')
@@ -170,10 +183,12 @@ class CLI:
         import_parser.add_argument('--validate', action='store_true', help='导入后验证规则')
         import_parser.add_argument('--merge', action='store_true', help='与现有规则合并')
         import_parser.add_argument('--log', help='保存导入日志的文件路径')
+        import_parser.add_argument('--type', choices=['rules', 'templates'], help='资源类型')
+        import_parser.add_argument('--mode', choices=['append', 'replace'], help='导入模式')
         
         return parser
     
-        async def _migrate_database(self, args) -> None:
+    async def _migrate_database(self, args) -> None:
             """执行数据库迁移"""
             from .migration import perform_database_migration
             
@@ -284,99 +299,26 @@ class CLI:
             return 1
     
     async def _validate_content(self, args) -> int:
-        """验证文件内容"""
-        try:
-            validation_manager = get_validation_manager()
-            all_results = []
-            total_score = 0.0
-            
-            for file_path in args.files:
-                path = Path(file_path)
-                
-                if not path.exists():
-                    print(f"❌ 文件不存在: {file_path}")
-                    continue
-                
-                # 读取文件内容
-                try:
-                    with open(path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                except UnicodeDecodeError:
-                    print(f"⚠️ 跳过二进制文件: {file_path}")
-                    continue
-                
-                # 推断语言
-                language = args.language or self._infer_language(path)
-                
-                if not language:
-                    print(f"⚠️ 无法推断文件语言: {file_path}")
-                    continue
-                
-                # 执行验证
-                print(f"🔍 验证文件: {file_path} (语言: {language})")
-                
-                start_time = datetime.now()
-                result = await validation_manager.validate_content(content, language, str(path))
-                result.validation_time = datetime.now()
-                
-                all_results.append({
-                    'file': str(path),
-                    'language': language,
-                    'result': result
-                })
-                
-                total_score += result.score
-                
-                if args.format == 'text':
-                    self._print_validation_result(path, result)
-                
-                # 尝试自动修复
-                if args.fix and not result.is_valid:
-                    await self._auto_fix_issues(path, language, result.issues)
-            
-            if args.format == 'json':
-                # JSON输出
-                output = []
-                for item in all_results:
-                    result = item['result']
-                    output.append({
-                        'file': item['file'],
-                        'language': item['language'],
-                        'is_valid': result.is_valid,
-                        'score': result.score,
-                        'issues_count': len(result.issues),
-                        'issues': [
-                            {
-                                'line': issue.line_number,
-                                'column': issue.column_number,
-                                'message': issue.message,
-                                'severity': issue.severity.value,
-                                'rule_id': issue.rule_id
-                            }
-                            for issue in result.issues
-                        ]
-                    })
-                
-                print(json.dumps(output, ensure_ascii=False, indent=2))
-            else:
-                # 显示总结
-                if len(all_results) > 1:
-                    avg_score = total_score / len(all_results)
-                    valid_files = sum(1 for item in all_results if item['result'].is_valid)
-                    
-                    print("\n" + "="*60)
-                    print(f"📊 验证总结:")
-                    print(f"   总文件数: {len(all_results)}")
-                    print(f"   通过验证: {valid_files}")
-                    print(f"   平均分数: {avg_score:.1f}")
-                    print(f"   总体状态: {'✅ 通过' if valid_files == len(all_results) else '❌ 存在问题'}")
-            
-            # 返回码：所有文件都通过验证返回0，否则返回1
-            return 0 if all(item['result'].is_valid for item in all_results) else 1
-            
-        except Exception as e:
-            logger.error(f"验证文件失败: {e}")
-            return 1
+        """CLI调用，参数化校验内容合规性"""
+        from src.cursorrules_mcp.engine import OutputMode
+        from src.cursorrules_mcp.models import MCPContext
+        
+        # 构建MCP上下文
+        context = MCPContext(
+            user_query="Content validation request",
+            current_file=getattr(args, 'file_path', None),
+            primary_language=getattr(args, 'languages', None),
+            domain=getattr(args, 'domains', None),
+            project_path=None
+        )
+        
+        result = await self.rule_engine.validate_content(
+            content=args.content,
+            context=context,
+            output_mode=OutputMode(args.output_mode)
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
     
     def _print_validation_result(self, file_path: Path, result) -> None:
         """打印验证结果"""
@@ -530,48 +472,17 @@ class CLI:
             logger.error(f"配置管理失败: {e}")
             return 1
     
-    async def _show_stats(self, args) -> int:
-        """显示统计信息"""
-        try:
-            # 初始化规则引擎
-            engine = RuleEngine(self.config.rules_dir)
-            await engine.initialize()
-            
-            # 获取统计信息
-            stats = await engine.get_statistics()
-            
-            if args.format == 'json':
-                print(json.dumps(stats, ensure_ascii=False, indent=2))
-            else:
-                print("📊 CursorRules-MCP 统计信息\n")
-                print(f"📝 总规则数: {stats['total_rules']}")
-                print(f"⏰ 数据加载时间: {stats['loaded_at'] or '未知'}")
-                print(f"📈 平均成功率: {stats['average_success_rate']:.1%}")
-                
-                print("\n🏷️ 规则类型分布:")
-                for rule_type, count in stats['rules_by_type'].items():
-                    if count > 0:
-                        percentage = (count / stats['total_rules']) * 100
-                        print(f"  {rule_type}: {count} ({percentage:.1f}%)")
-                
-                print("\n💻 编程语言分布:")
-                for language, count in sorted(stats['rules_by_language'].items()):
-                    print(f"  {language}: {count} 条规则")
-                
-                print("\n🌍 应用领域分布:")
-                for domain, count in sorted(stats['rules_by_domain'].items()):
-                    print(f"  {domain}: {count} 条规则")
-                
-                print(f"\n🔍 索引信息:")
-                print(f"  标签总数: {stats['total_tags']}")
-                print(f"  语言索引: {len(stats['rules_by_language'])} 种语言")
-                print(f"  领域索引: {len(stats['rules_by_domain'])} 个领域")
-            
-            return 0
-            
-        except Exception as e:
-            logger.error(f"获取统计信息失败: {e}")
-            return 1
+    async def _get_statistics(self, args) -> int:
+        """CLI调用，获取规则与模板统计信息"""
+        result = self.rule_engine.get_statistics(
+            resource_type=getattr(args, 'resource_type', 'rules'),
+            languages=getattr(args, 'languages', ''),
+            domains=getattr(args, 'domains', ''),
+            rule_types=getattr(args, 'rule_types', ''),
+            tags=getattr(args, 'tags', '')
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
     
     async def _test_tools(self, args) -> int:
         """测试验证工具"""
@@ -658,143 +569,122 @@ int main() {
         
         return test_contents.get(language, '// Test content')
 
-    async def _import_rules(self, args) -> int:
-        """导入多格式规则文件"""
+    async def _import_resources(self, args) -> int:
+        """导入规则或模板文件"""
         try:
             from .rule_import import UnifiedRuleImporter
+            from .engine import RuleEngine
             from .database import get_rule_database
-            
-            print("🚀 开始导入规则文件...")
-            
-            # 创建导入器
-            importer = UnifiedRuleImporter()
-            
-            # 执行导入
-            rules = importer.import_rules(
-                paths=args.paths,
-                recursive=args.recursive,
-                format_hint=args.format if args.format != 'auto' else None
-            )
-            
-            if not rules:
-                print("❌ 未能导入任何规则")
-                return 1
-            
-            print(f"✅ 成功解析 {len(rules)} 条规则")
-            
-            # 如果指定了输出目录，保存到文件
-            if args.output_dir:
-                output_dir = Path(args.output_dir)
-                output_dir.mkdir(parents=True, exist_ok=True)
-                
-                # 保存为JSON格式
-                output_file = output_dir / "imported_rules.json"
-                rules_data = [rule.dict() for rule in rules]
-                
-                with open(output_file, 'w', encoding='utf-8') as f:
-                    import json
-                    json.dump(rules_data, f, indent=2, ensure_ascii=False, default=str)
-                
-                print(f"💾 规则已保存到: {output_file}")
-            
-            # 如果启用合并，添加到数据库
-            if args.merge:
-                print("🔄 正在合并到规则数据库...")
-                
-                try:
-                    database = get_rule_database()
-                    await database.initialize()
+            print("🚀 开始导入资源文件...")
+            # 自动识别类型
+            resource_type = args.type or None
+            if not resource_type:
+                # 根据第一个文件后缀自动判断
+                ext = os.path.splitext(args.paths[0])[1].lower()
+                if ext in ['.yaml', '.yml', '.md']:
+                    resource_type = 'templates'
+                else:
+                    resource_type = 'rules'
+            if resource_type == 'templates':
+                # 导入模板
+                engine = RuleEngine(self.config.rules_dir)
+                engine.load_prompt_templates(args.paths, mode=getattr(args, 'mode', 'append'))
+                print(f"✅ 成功导入 {len(args.paths)} 个模板文件")
+                return 0
+            else:
+                # 导入规则
+                importer = UnifiedRuleImporter(save_to_database=True)
+                rules = await importer.import_rules_async(
+                    paths=args.paths,
+                    recursive=args.recursive,
+                    format_hint=args.format if args.format != 'auto' else None
+                )
+                if not rules:
+                    print("❌ 未能导入任何规则")
+                    return 1
+                print(f"✅ 成功解析 {len(rules)} 条规则")
+                # 如果指定了输出目录，保存到文件
+                if args.output_dir:
+                    output_dir = Path(args.output_dir)
+                    output_dir.mkdir(parents=True, exist_ok=True)
                     
-                    added_count = 0
-                    updated_count = 0
+                    # 保存为JSON格式
+                    output_file = output_dir / "imported_rules.json"
+                    rules_data = [rule.dict() for rule in rules]
+                    
+                    with open(output_file, 'w', encoding='utf-8') as f:
+                        import json
+                        json.dump(rules_data, f, indent=2, ensure_ascii=False, default=str)
+                    
+                    print(f"💾 规则已保存到: {output_file}")
+                
+                # 如果启用验证，验证导入的规则
+                if args.validate:
+                    print("🔍 正在验证导入的规则...")
+                    
+                    valid_count = 0
+                    invalid_count = 0
                     
                     for rule in rules:
-                        existing_rule = database.get_rule_by_id(rule.rule_id)
-                        
-                        if existing_rule:
-                            # 更新现有规则
-                            database.update_rule(rule)
-                            updated_count += 1
-                            print(f"🔄 更新规则: {rule.rule_id}")
-                        else:
-                            # 添加新规则
-                            database.add_rule(rule)
-                            added_count += 1
-                            print(f"➕ 添加规则: {rule.rule_id}")
-                    
-                    print(f"📊 合并结果: 新增 {added_count} 条，更新 {updated_count} 条")
-                    
-                except Exception as e:
-                    print(f"⚠️ 合并到数据库时出错: {e}")
-                    if args.verbose:
-                        import traceback
-                        traceback.print_exc()
-            
-            # 如果启用验证，验证导入的规则
-            if args.validate:
-                print("🔍 正在验证导入的规则...")
-                
-                valid_count = 0
-                invalid_count = 0
-                
-                for rule in rules:
-                    try:
-                        # 简单验证：检查必需字段
-                        if not rule.rule_id or not rule.name or not rule.rules:
-                            print(f"❌ 规则验证失败: {rule.rule_id} - 缺少必需字段")
+                        try:
+                            # 简单验证：检查必需字段
+                            if not rule.rule_id or not rule.name or not rule.rules:
+                                print(f"❌ 规则验证失败: {rule.rule_id} - 缺少必需字段")
+                                invalid_count += 1
+                            else:
+                                print(f"✅ 规则验证通过: {rule.rule_id}")
+                                valid_count += 1
+                        except Exception as e:
+                            print(f"❌ 规则验证失败: {rule.rule_id} - {e}")
                             invalid_count += 1
-                        else:
-                            print(f"✅ 规则验证通过: {rule.rule_id}")
-                            valid_count += 1
-                    except Exception as e:
-                        print(f"❌ 规则验证失败: {rule.rule_id} - {e}")
-                        invalid_count += 1
-                
-                print(f"📊 验证结果: 通过 {valid_count} 条，失败 {invalid_count} 条")
-            
-            # 显示导入摘要
-            summary = importer.get_import_summary()
-            
-            print("\n" + "="*60)
-            print("📊 导入摘要:")
-            print(f"  总文件数: {summary['total_files']}")
-            print(f"  成功导入: {summary['successful_imports']}")
-            print(f"  导入失败: {summary['failed_imports']}")
-            print(f"  成功率: {summary['success_rate']:.1%}")
-            print(f"  总规则数: {len(rules)}")
-            
-            # 按格式统计
-            format_stats = {}
-            for log_entry in summary['import_log']:
-                if log_entry['status'] == 'success':
-                    file_path = Path(log_entry['file'])
-                    ext = file_path.suffix.lower()
-                    format_name = {
-                        '.md': 'Markdown',
-                        '.markdown': 'Markdown', 
-                        '.yaml': 'YAML',
-                        '.yml': 'YAML',
-                        '.json': 'JSON'
-                    }.get(ext, 'Unknown')
                     
-                    format_stats[format_name] = format_stats.get(format_name, 0) + 1
-            
-            if format_stats:
-                print("\n📁 按格式统计:")
-                for format_name, count in format_stats.items():
-                    print(f"  {format_name}: {count} 个文件")
-            
-            # 保存导入日志
-            if args.log:
-                log_path = Path(args.log)
-                importer.save_import_log(log_path)
-                print(f"📝 导入日志已保存: {log_path}")
-            
-            return 0 if summary['failed_imports'] == 0 else 1
+                    print(f"📊 验证结果: 通过 {valid_count} 条，失败 {invalid_count} 条")
+                
+                # 显示导入摘要
+                summary = importer.get_import_summary()
+                
+                print("\n" + "="*60)
+                print("📊 导入摘要:")
+                print(f"  总文件数: {summary['total_files']}")
+                print(f"  成功导入: {summary['successful_imports']}")
+                print(f"  导入失败: {summary['failed_imports']}")
+                print(f"  成功率: {summary['success_rate']:.1%}")
+                print(f"  总规则数: {len(rules)}")
+                
+                # 按格式统计
+                format_stats = {}
+                for log_entry in summary['import_log']:
+                    if log_entry['status'] == 'success':
+                        file_path = Path(log_entry['file'])
+                        ext = file_path.suffix.lower()
+                        format_name = {
+                            '.md': 'Markdown',
+                            '.markdown': 'Markdown', 
+                            '.yaml': 'YAML',
+                            '.yml': 'YAML',
+                            '.json': 'JSON'
+                        }.get(ext, 'Unknown')
+                        
+                        format_stats[format_name] = format_stats.get(format_name, 0) + 1
+                
+                if format_stats:
+                    print("\n📁 按格式统计:")
+                    for format_name, count in format_stats.items():
+                        print(f"  {format_name}: {count} 个文件")
+                
+                # 保存导入日志
+                if args.log:
+                    log_path = Path(args.log)
+                    importer.save_import_log(log_path)
+                    print(f"📝 导入日志已保存: {log_path}")
+                
+                print(f"\n🔄 规则已保存到数据库，下次搜索将包含新导入的规则")
+                
+                return 0 if summary['failed_imports'] == 0 else 1
             
         except Exception as e:
-            logger.error(f"导入规则失败: {e}")
-            if args.verbose:
+            logger.error(f"导入资源失败: {e}")
+            if getattr(args, 'verbose', False):
                 import traceback
                 traceback.print_exc()
             return 1

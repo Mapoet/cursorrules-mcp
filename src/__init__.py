@@ -3,7 +3,7 @@
 CursorRules-MCP: Model Context Protocol for CursorRules Management
 
 This package provides intelligent rule-based context management for LLMs
-through the Model Context Protocol (MCP), enabling consistent and 
+through the Model Context Protocol (MCP), enabling consistent and
 professional code generation and documentation across multiple domains.
 
 Author: Mapoet
@@ -14,4 +14,4 @@ License: MIT
 
 __version__ = "0.1.0"
 __author__ = "Mapoet (NUS/STAR)"
-__description__ = "Intelligent rule-based context management for LLMs via MCP" 
+__description__ = "Intelligent rule-based context management for LLMs via MCP"

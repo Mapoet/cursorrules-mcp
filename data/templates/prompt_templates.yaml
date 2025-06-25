@@ -1,0 +1,509 @@
+templates:
+  - template_id: python_code_review
+    name: Python代码规范检查
+    description: 针对Python代码的国际专家合规性分析模板
+    domains: []
+    languages: [python]
+    content_types: [code]
+    template: |
+      你是国际公认的Python编程规范专家。请基于以下规则，对给定代码内容进行全面、公正、专业的合规性分析。
+      规则如下：
+      {rules}
+      待验证代码如下：
+      {content}
+      请指出所有不符合规则之处，给出改进建议，并分条列出。最后给出合规性结论。
+
+  - template_id: cpp_code_review
+    name: C++代码规范检查
+    description: 针对C++代码的国际专家合规性分析模板
+    domains: []
+    languages: [cpp, c++]
+    content_types: [code]
+    template: |
+      你是国际公认的C++编程规范专家。请基于以下规则，对给定代码内容进行全面、公正、专业的合规性分析。
+      规则如下：
+      {rules}
+      待验证代码如下：
+      {content}
+      请指出所有不符合规则之处，给出改进建议，并分条列出。最后给出合规性结论。
+
+  - template_id: academic_writing
+    name: 学术论文写作规范
+    description: SCI论文写作领域国际专家模板
+    domains: [academic, paper, science]
+    languages: []
+    content_types: [documentation]
+    template: |
+      你是SCI论文写作领域的国际专家。请基于以下学术写作规范，对下述论文片段进行完整性、公正性、专业性分析。
+      规则如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出所有不符合规范之处，给出修改建议，并总结整体合规性。
+
+  - template_id: ionosphere_terms
+    name: 电离层术语一致性
+    description: 空间物理领域术语合规性分析模板
+    domains: [ionosphere, space]
+    languages: []
+    content_types: []
+    template: |
+      你是电离层物理领域的国际权威专家。请基于以下行业/术语规范，对下述内容进行术语一致性和合规性分析。
+      规则如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出所有不符合行业规范或术语标准的地方，并给出修正建议。
+
+  - template_id: tech_report_structure
+    name: 技术报告结构规范
+    description: 工程/科研技术报告结构完整性与规范性分析模板
+    domains: [engineering, project, report]
+    languages: []
+    content_types: [documentation, report]
+    template: |
+      你是{domain}领域的高级技术报告评审专家。请基于以下结构规范，对下述技术报告内容进行完整性和结构合规性分析。
+      结构规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出结构缺失或不规范之处，并给出补全建议。
+
+  # 文档编写规范
+  - template_id: academic_paper
+    name: 学术论文编写规范
+    description: 学术论文结构与内容合规性分析模板
+    domains: [academic, paper, science]
+    languages: []
+    content_types: [documentation]
+    template: |
+      你是SCI学术论文写作领域的国际专家。请基于以下学术论文规范，对下述论文内容进行结构、完整性和学术规范性分析。
+      规范如下：
+      {rules}
+      待验证论文内容如下：
+      {content}
+      请指出结构缺失、内容不规范或学术不严谨之处，并给出修改建议。
+
+  - template_id: peer_review
+    name: 同行评议/审稿规范
+    description: 学术论文同行评议与审稿流程合规性分析模板
+    domains: [peer-review, review, academic]
+    languages: []
+    content_types: [documentation]
+    template: |
+      你是国际期刊的高级审稿专家。请基于以下同行评议与审稿规范，对下述评议意见或审稿流程进行公正性、专业性和流程合规性分析。
+      规范如下：
+      {rules}
+      待验证评议内容如下：
+      {content}
+      请指出流程不规范、意见不充分或不公正之处，并给出改进建议。
+
+  - template_id: project_proposal
+    name: 项目建议书规范
+    description: 科研/工程项目建议书结构与内容合规性分析模板
+    domains: [project, proposal, engineering, science]
+    languages: []
+    content_types: [documentation]
+    template: |
+      你是国际科研与工程项目管理专家。请基于以下项目建议书规范，对下述建议书内容进行结构、完整性和可行性分析。
+      规范如下：
+      {rules}
+      待验证建议书如下：
+      {content}
+      请指出结构缺失、内容不充分或可行性不足之处，并给出补全建议。
+
+  - template_id: review_guidelines
+    name: 审稿与评议流程规范
+    description: 审稿与评议流程合规性分析模板
+    domains: [review, peer-review, process]
+    languages: []
+    content_types: [documentation]
+    template: |
+      你是国际学术出版领域的流程管理专家。请基于以下审稿与评议流程规范，对下述流程内容进行合规性和完整性分析。
+      规范如下：
+      {rules}
+      待验证流程如下：
+      {content}
+      请指出流程缺失、环节不规范或不透明之处，并给出改进建议。
+
+  - template_id: review_response
+    name: 审稿意见回复规范
+    description: 审稿意见回复合规性与沟通有效性分析模板
+    domains: [review, response, academic]
+    languages: []
+    content_types: [documentation]
+    template: |
+      你是国际学术交流与出版沟通专家。请基于以下审稿意见回复规范，对下述回复内容进行合规性、沟通有效性和礼貌性分析。
+      规范如下：
+      {rules}
+      待验证回复如下：
+      {content}
+      请指出不合规范、不礼貌或沟通不充分之处，并给出改进建议。
+
+  - template_id: scientific_writing
+    name: 科学写作通用规范
+    description: 科学技术文档写作规范性与表达准确性分析模板
+    domains: [science, documentation]
+    languages: []
+    content_types: [documentation]
+    template: |
+      你是科学写作领域的国际专家。请基于以下科学写作通用规范，对下述技术文档内容进行表达准确性、逻辑性和规范性分析。
+      规范如下：
+      {rules}
+      待验证文档如下：
+      {content}
+      请指出表达不准确、逻辑不清晰或不规范之处，并给出修改建议。
+
+  - template_id: technical_report
+    name: 技术报告规范
+    description: 技术报告结构与内容完整性分析模板
+    domains: [engineering, report, project]
+    languages: []
+    content_types: [documentation, report]
+    template: |
+      你是工程与科研技术报告评审专家。请基于以下技术报告规范，对下述报告内容进行结构完整性和规范性分析。
+      规范如下：
+      {rules}
+      待验证报告如下：
+      {content}
+      请指出结构缺失、内容不规范或表达不清之处，并给出补全建议。
+
+  - template_id: translation_services
+    name: 翻译服务与术语规范
+    description: 科技文档翻译与术语一致性分析模板
+    domains: [translation, terminology, documentation]
+    languages: []
+    content_types: [documentation]
+    template: |
+      你是科技文档翻译与术语标准化领域的国际专家。请基于以下翻译与术语规范，对下述翻译内容进行术语一致性和表达准确性分析。
+      规范如下：
+      {rules}
+      待验证翻译如下：
+      {content}
+      请指出术语不一致、表达不准确或不符合标准之处，并给出修正建议。
+
+  # 编程开发规范（languages）
+  - template_id: cpp_scientific
+    name: C++科学计算开发规范
+    description: C++科学计算项目开发合规性分析模板
+    domains: [programming, scientific, cpp]
+    languages: [cpp, c++]
+    content_types: [code]
+    template: |
+      你是C++科学计算领域的国际专家。请基于以下C++科学计算开发规范，对下述代码进行合规性和科学性分析。
+      规范如下：
+      {rules}
+      待验证代码如下：
+      {content}
+      请指出不符合规范或科学性不足之处，并给出优化建议。
+
+  - template_id: fortran_numerical
+    name: Fortran数值计算规范
+    description: Fortran数值计算项目开发合规性分析模板
+    domains: [programming, scientific, fortran]
+    languages: [fortran]
+    content_types: [code]
+    template: |
+      你是Fortran数值计算领域的国际专家。请基于以下Fortran数值计算开发规范，对下述代码进行合规性和科学性分析。
+      规范如下：
+      {rules}
+      待验证代码如下：
+      {content}
+      请指出不符合规范或科学性不足之处，并给出优化建议。
+
+  - template_id: python_scientific
+    name: Python科学计算开发规范
+    description: Python科学计算项目开发合规性分析模板
+    domains: [programming, scientific, python]
+    languages: [python]
+    content_types: [code]
+    template: |
+      你是Python科学计算领域的国际专家。请基于以下Python科学计算开发规范，对下述代码进行合规性和科学性分析。
+      规范如下：
+      {rules}
+      待验证代码如下：
+      {content}
+      请指出不符合规范或科学性不足之处，并给出优化建议。
+
+  - template_id: shell_scripting
+    name: Shell脚本编写规范
+    description: Shell脚本开发合规性与健壮性分析模板
+    domains: [programming, shell]
+    languages: [shell]
+    content_types: [code]
+    template: |
+      你是Shell脚本开发领域的国际专家。请基于以下Shell脚本编写规范，对下述脚本进行合规性和健壮性分析。
+      规范如下：
+      {rules}
+      待验证脚本如下：
+      {content}
+      请指出不符合规范或健壮性不足之处，并给出优化建议。
+
+  # 编程开发规范（types）
+  - template_id: data_analysis
+    name: 数据分析项目规范
+    description: 数据分析项目开发合规性与科学性分析模板
+    domains: [programming, data-analysis]
+    languages: []
+    content_types: [code, documentation]
+    template: |
+      你是数据分析领域的国际专家。请基于以下数据分析项目规范，对下述项目内容进行合规性和科学性分析。
+      规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出不符合规范或科学性不足之处，并给出优化建议。
+
+  - template_id: database_storage
+    name: 数据库与存储开发规范
+    description: 数据库与存储系统开发合规性分析模板
+    domains: [programming, database]
+    languages: []
+    content_types: [code, documentation]
+    template: |
+      你是数据库与存储系统开发领域的国际专家。请基于以下数据库与存储开发规范，对下述内容进行合规性和健壮性分析。
+      规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出不符合规范或健壮性不足之处，并给出优化建议。
+
+  - template_id: gui_applications
+    name: GUI应用开发规范
+    description: GUI应用开发合规性与用户体验分析模板
+    domains: [programming, gui]
+    languages: []
+    content_types: [code, documentation]
+    template: |
+      你是GUI应用开发领域的国际专家。请基于以下GUI应用开发规范，对下述内容进行合规性和用户体验分析。
+      规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出不符合规范或用户体验不足之处，并给出优化建议。
+
+  - template_id: hpc_computing
+    name: 高性能计算规范
+    description: 高性能计算项目开发合规性与性能分析模板
+    domains: [programming, hpc]
+    languages: []
+    content_types: [code, documentation]
+    template: |
+      你是高性能计算领域的国际专家。请基于以下高性能计算开发规范，对下述内容进行合规性和性能分析。
+      规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出不符合规范或性能不足之处，并给出优化建议。
+
+  - template_id: http_services
+    name: HTTP服务开发规范
+    description: HTTP服务开发合规性与安全性分析模板
+    domains: [programming, http]
+    languages: []
+    content_types: [code, documentation]
+    template: |
+      你是HTTP服务开发领域的国际专家。请基于以下HTTP服务开发规范，对下述内容进行合规性和安全性分析。
+      规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出不符合规范或安全性不足之处，并给出优化建议。
+
+  - template_id: machine_learning
+    name: 机器学习开发规范
+    description: 机器学习项目开发合规性与科学性分析模板
+    domains: [programming, machine-learning]
+    languages: []
+    content_types: [code, documentation]
+    template: |
+      你是机器学习开发领域的国际专家。请基于以下机器学习开发规范，对下述内容进行合规性和科学性分析。
+      规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出不符合规范或科学性不足之处，并给出优化建议。
+
+  - template_id: mcp_services
+    name: MCP服务开发规范
+    description: MCP服务开发合规性与接口规范分析模板
+    domains: [programming, mcp]
+    languages: []
+    content_types: [code, documentation]
+    template: |
+      你是MCP服务开发领域的国际专家。请基于以下MCP服务开发规范，对下述内容进行合规性和接口规范性分析。
+      规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出不符合规范或接口设计不合理之处，并给出优化建议。
+
+  - template_id: numerical_computing
+    name: 数值计算规范
+    description: 数值计算项目开发合规性与科学性分析模板
+    domains: [programming, numerical]
+    languages: []
+    content_types: [code, documentation]
+    template: |
+      你是数值计算领域的国际专家。请基于以下数值计算开发规范，对下述内容进行合规性和科学性分析。
+      规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出不符合规范或科学性不足之处，并给出优化建议。
+
+  - template_id: visualization
+    name: 数据可视化规范
+    description: 数据可视化项目开发合规性与表现力分析模板
+    domains: [programming, visualization]
+    languages: []
+    content_types: [code, documentation]
+    template: |
+      你是数据可视化开发领域的国际专家。请基于以下数据可视化开发规范，对下述内容进行合规性和表现力分析。
+      规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出不符合规范或表现力不足之处，并给出优化建议。
+
+  # 专业领域规范
+  - template_id: atmospheric_science
+    name: 大气科学领域规范
+    description: 大气科学领域数据、术语与建模合规性分析模板
+    domains: [atmospheric-science, meteorology]
+    languages: []
+    content_types: [documentation, code]
+    template: |
+      你是大气科学领域的国际专家。请基于以下大气科学领域规范，对下述内容进行数据、术语和建模合规性分析。
+      规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出数据、术语或建模不规范之处，并给出修正建议。
+
+  - template_id: climate_science
+    name: 气候科学领域规范
+    description: 气候科学领域数据、术语与建模合规性分析模板
+    domains: [climate-science, climate]
+    languages: []
+    content_types: [documentation, code]
+    template: |
+      你是气候科学领域的国际专家。请基于以下气候科学领域规范，对下述内容进行数据、术语和建模合规性分析。
+      规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出数据、术语或建模不规范之处，并给出修正建议。
+
+  - template_id: geodesy_surveying
+    name: 测绘学/大地测量规范
+    description: 测绘学与大地测量领域合规性与术语一致性分析模板
+    domains: [geodesy-surveying, geodesy, surveying]
+    languages: []
+    content_types: [documentation, code]
+    template: |
+      你是测绘学与大地测量领域的国际专家。请基于以下测绘学/大地测量规范，对下述内容进行合规性和术语一致性分析。
+      规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出不合规范或术语不一致之处，并给出修正建议。
+
+  - template_id: geophysics
+    name: 地球物理学规范
+    description: 地球物理学领域数据、术语与建模合规性分析模板
+    domains: [geophysics]
+    languages: []
+    content_types: [documentation, code]
+    template: |
+      你是地球物理学领域的国际专家。请基于以下地球物理学规范，对下述内容进行数据、术语和建模合规性分析。
+      规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出数据、术语或建模不规范之处，并给出修正建议。
+
+  - template_id: ionospheric_physics
+    name: 电离层物理规范
+    description: 电离层物理领域数据、术语与建模合规性分析模板
+    domains: [ionospheric-physics, ionosphere, space-physics]
+    languages: []
+    content_types: [documentation, code]
+    template: |
+      你是电离层物理领域的国际专家。请基于以下电离层物理规范，对下述内容进行数据、术语和建模合规性分析。
+      规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出数据、术语或建模不规范之处，并给出修正建议。
+
+  - template_id: oceanography
+    name: 海洋学规范
+    description: 海洋学领域数据、术语与建模合规性分析模板
+    domains: [oceanography, marine]
+    languages: []
+    content_types: [documentation, code]
+    template: |
+      你是海洋学领域的国际专家。请基于以下海洋学规范，对下述内容进行数据、术语和建模合规性分析。
+      规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出数据、术语或建模不规范之处，并给出修正建议。
+
+  - template_id: space_science
+    name: 空间科学规范
+    description: 空间科学领域数据、术语与建模合规性分析模板
+    domains: [space-science, space-physics, space]
+    languages: []
+    content_types: [documentation, code]
+    template: |
+      你是空间科学领域的国际专家。请基于以下空间科学规范，对下述内容进行数据、术语和建模合规性分析。
+      规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出数据、术语或建模不规范之处，并给出修正建议。
+
+  # 系统级规范
+  - template_id: mcp_registry
+    name: MCP服务注册与发现规范
+    description: MCP服务注册与发现流程合规性分析模板
+    domains: [system, mcp]
+    languages: []
+    content_types: [documentation, code]
+    template: |
+      你是MCP服务注册与发现领域的国际专家。请基于以下MCP服务注册与发现规范，对下述内容进行流程合规性和接口规范性分析。
+      规范如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出流程不规范或接口设计不合理之处，并给出优化建议。
+
+  - template_id: quality_control
+    name: 质量控制标准
+    description: 质量控制流程与标准合规性分析模板
+    domains: [system, quality-control]
+    languages: []
+    content_types: [documentation, code]
+    template: |
+      你是质量控制领域的国际专家。请基于以下质量控制标准，对下述内容进行流程合规性和标准一致性分析。
+      标准如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出流程不规范或标准不一致之处，并给出修正建议。
+
+  - template_id: tag_system
+    name: 标签体系定义
+    description: 标签体系设计与分类合规性分析模板
+    domains: [system, tag-system]
+    languages: []
+    content_types: [documentation, code]
+    template: |
+      你是标签体系设计领域的国际专家。请基于以下标签体系定义，对下述内容进行分类合规性和标签设计合理性分析。
+      定义如下：
+      {rules}
+      待验证内容如下：
+      {content}
+      请指出分类不合理或标签设计不规范之处，并给出优化建议。 

@@ -7,7 +7,7 @@ author: "Mapoet"
 rule_type: "style"
 languages: ["python"]
 domains: ["software_development"]
-task_types: ["development"]
+task_types: ["software_design"]
 content_types: ["code"]
 tags: ["python", "naming", "functions", "snake_case"]
 

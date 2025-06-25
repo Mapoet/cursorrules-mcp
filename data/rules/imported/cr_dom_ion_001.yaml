@@ -1,0 +1,796 @@
+active: true
+applies_to:
+  contexts: []
+  file_patterns: []
+  project_types: []
+author: Mapoet
+conflicts_with: []
+content_types:
+- code
+created_at: '2025-06-24T11:18:27.926071+00:00'
+description: 电离层物理研究的专业术语、数据标准和建模规范
+domains:
+- ionospheric_physics
+- space_weather
+- radio_propagation
+languages:
+- fortran
+- python
+- matlab
+name: 电离层物理专业规范
+overrides: []
+rule_id: CR-DOM-ION-001
+rule_type: content
+rules:
+- condition: main_rule_3_1
+  examples:
+  - code: "\"\"\"\n电离层基本参数定义\nAuthor: Mapoet\nDate: 2025-01-15\n\"\"\"\n\nimport numpy\
+      \ as np\nfrom typing import Dict, Tuple, Optional\nfrom dataclasses import dataclass\n\
+      from enum import Enum\n\n\nclass IonoLayer(Enum):\n    \"\"\"电离层分层定义\"\"\"\n\
+      \    D_LAYER = \"D\"      # D层 (60-90 km)\n    E_LAYER = \"E\"      # E层 (90-130\
+      \ km)\n    F1_LAYER = \"F1\"    # F1层 (130-210 km)\n    F2_LAYER = \"F2\"  \
+      \  # F2层 (210-800 km)\n    TOPSIDE = \"TOP\"    # 顶部电离层 (>800 km)\n\n\n@dataclass\n\
+      class IonoParams:\n    \"\"\"电离层基本参数\"\"\"\n    \n    # 电子浓度相关\n    ne: float\
+      \                    # 电子浓度 [m^-3]\n    ne_max: float               # 峰值电子浓度\
+      \ [m^-3]\n    h_max: float                # 峰值高度 [km]\n    scale_height: float\
+      \         # 标高 [km]\n    \n    # Total Electron Content\n    tec: float    \
+      \              # 总电子含量 [TECU] (1 TECU = 10^16 m^-2)\n    vtec: float       \
+      \          # 垂直TEC [TECU]\n    stec: float                 # 倾斜TEC [TECU]\n\
+      \    \n    # 碰撞频率\n    nu_en: float               # 电子-中性粒子碰撞频率 [Hz]\n    nu_ei:\
+      \ float               # 电子-离子碰撞频率 [Hz]\n    nu_in: float               # 离子-中性粒子碰撞频率\
+      \ [Hz]\n    \n    # 等离子体频率\n    f_pe: float                # 电子等离子体频率 [Hz]\n\
+      \    f_pi: float                # 离子等离子体频率 [Hz]\n    \n    # 回旋频率\n    f_ce:\
+      \ float                # 电子回旋频率 [Hz]\n    f_ci: float                # 离子回旋频率\
+      \ [Hz]\n    \n    # 地磁场参数\n    b_total: float             # 总磁场强度 [nT]\n   \
+      \ b_horizontal: float        # 水平分量 [nT]\n    b_vertical: float          # 垂直分量\
+      \ [nT]\n    declination: float         # 磁偏角 [度]\n    inclination: float   \
+      \      # 磁倾角 [度]\n\n\nclass IonoPhysics:\n    \"\"\"电离层物理计算类\"\"\"\n    \n \
+      \   # 物理常数\n    ELECTRON_CHARGE = 1.602176634e-19      # 电子电荷 [C]\n    ELECTRON_MASS\
+      \ = 9.1093837015e-31       # 电子质量 [kg]\n    PROTON_MASS = 1.67262192369e-27\
+      \        # 质子质量 [kg]\n    VACUUM_PERMITTIVITY = 8.8541878128e-12 # 真空介电常数 [F/m]\n\
+      \    BOLTZMANN = 1.380649e-23               # 玻尔兹曼常数 [J/K]\n    \n    @staticmethod\n\
+      \    def plasma_frequency(ne: float) -> float:\n        \"\"\"\n        计算等离子体频率\n\
+      \        \n        Args:\n            ne: 电子浓度 [m^-3]\n            \n      \
+      \  Returns:\n            float: 等离子体频率 [Hz]\n        \"\"\"\n        return\
+      \ np.sqrt(ne * IonoPhysics.ELECTRON_CHARGE**2 / \n                      (IonoPhysics.ELECTRON_MASS\
+      \ * IonoPhysics.VACUUM_PERMITTIVITY)) / (2 * np.pi)\n    \n    @staticmethod\n\
+      \    def critical_frequency(ne_max: float) -> float:\n        \"\"\"\n     \
+      \   计算临界频率\n        \n        Args:\n            ne_max: 峰值电子浓度 [m^-3]\n   \
+      \         \n        Returns:\n            float: 临界频率 [MHz]\n        \"\"\"\n\
+      \        f_pe = IonoPhysics.plasma_frequency(ne_max)\n        return f_pe /\
+      \ 1e6  # 转换为MHz\n    \n    @staticmethod\n    def gyro_frequency(b_field: float,\
+      \ mass: float, charge: float) -> float:\n        \"\"\"\n        计算回旋频率\n  \
+      \      \n        Args:\n            b_field: 磁场强度 [T]\n            mass: 粒子质量\
+      \ [kg]\n            charge: 粒子电荷 [C]\n            \n        Returns:\n     \
+      \       float: 回旋频率 [Hz]\n        \"\"\"\n        return charge * b_field /\
+      \ (2 * np.pi * mass)\n    \n    @staticmethod\n    def scale_height(temperature:\
+      \ float, mass: float, gravity: float = 9.81) -> float:\n        \"\"\"\n   \
+      \     计算大气标高\n        \n        Args:\n            temperature: 温度 [K]\n   \
+      \         mass: 分子质量 [kg]\n            gravity: 重力加速度 [m/s^2]\n            \n\
+      \        Returns:\n            float: 标高 [m]\n        \"\"\"\n        return\
+      \ IonoPhysics.BOLTZMANN * temperature / (mass * gravity)\n    \n    @staticmethod\n\
+      \    def refractive_index(f: float, ne: float) -> complex:\n        \"\"\"\n\
+      \        计算电离层折射率\n        \n        Args:\n            f: 电磁波频率 [Hz]\n    \
+      \        ne: 电子浓度 [m^-3]\n            \n        Returns:\n            complex:\
+      \ 复折射率\n        \"\"\"\n        f_pe = IonoPhysics.plasma_frequency(ne)\n  \
+      \      x = (f_pe / f)**2\n        \n        # 简化情况（忽略磁场和碰撞）\n        if x <\
+      \ 1:\n            n = np.sqrt(1 - x)\n        else:\n            n = 1j * np.sqrt(x\
+      \ - 1)\n        \n        return n\n\n\n# 单位转换函数\ndef tecu_to_m2(tec_tecu: float)\
+      \ -> float:\n    \"\"\"TECU转换为m^-2\"\"\"\n    return tec_tecu * 1e16\n\ndef\
+      \ m2_to_tecu(tec_m2: float) -> float:\n    \"\"\"m^-2转换为TECU\"\"\"\n    return\
+      \ tec_m2 / 1e16\n\ndef mhz_to_ne(f_critical_mhz: float) -> float:\n    \"\"\"\
+      临界频率(MHz)转换为电子浓度(m^-3)\"\"\"\n    f_hz = f_critical_mhz * 1e6\n    return (f_hz\
+      \ * 2 * np.pi)**2 * IonoPhysics.ELECTRON_MASS * IonoPhysics.VACUUM_PERMITTIVITY\
+      \ / IonoPhysics.ELECTRON_CHARGE**2\n\ndef ne_to_mhz(ne: float) -> float:\n \
+      \   \"\"\"电子浓度(m^-3)转换为临界频率(MHz)\"\"\"\n    return IonoPhysics.critical_frequency(ne)"
+    explanation: 代码示例
+    language: python
+  - code: "\"\"\"\n电离层研究中的坐标系统和时间标准\n\"\"\"\n\nimport numpy as np\nfrom datetime import\
+      \ datetime, timezone\nfrom typing import Tuple, Union\nimport math\n\n\nclass\
+      \ CoordinateSystem:\n    \"\"\"坐标系统转换\"\"\"\n    \n    @staticmethod\n    def\
+      \ geographic_to_geomagnetic(lat_geo: float, lon_geo: float, \n             \
+      \                    year: float) -> Tuple[float, float]:\n        \"\"\"\n\
+      \        地理坐标转地磁坐标\n        \n        Args:\n            lat_geo: 地理纬度 [度]\n\
+      \            lon_geo: 地理经度 [度]\n            year: 年份（用于磁极位置）\n            \n\
+      \        Returns:\n            Tuple[float, float]: (地磁纬度, 地磁经度) [度]\n     \
+      \   \"\"\"\n        # 简化计算，实际应使用IGRF模型\n        # 2020年地磁北极位置\n        mag_pole_lat\
+      \ = 80.65  # 地磁北极纬度\n        mag_pole_lon = -72.68  # 地磁北极经度\n        \n   \
+      \     # 球面三角学转换\n        lat_geo_rad = math.radians(lat_geo)\n        lon_geo_rad\
+      \ = math.radians(lon_geo)\n        mag_pole_lat_rad = math.radians(mag_pole_lat)\n\
+      \        mag_pole_lon_rad = math.radians(mag_pole_lon)\n        \n        #\
+      \ 计算地磁纬度\n        cos_lat_mag = (math.sin(lat_geo_rad) * math.sin(mag_pole_lat_rad)\
+      \ + \n                      math.cos(lat_geo_rad) * math.cos(mag_pole_lat_rad)\
+      \ * \n                      math.cos(lon_geo_rad - mag_pole_lon_rad))\n    \
+      \    lat_mag = math.degrees(math.acos(cos_lat_mag)) - 90\n        \n       \
+      \ # 计算地磁经度（简化）\n        lon_mag = lon_geo - mag_pole_lon\n        if lon_mag\
+      \ > 180:\n            lon_mag -= 360\n        elif lon_mag < -180:\n       \
+      \     lon_mag += 360\n            \n        return lat_mag, lon_mag\n    \n\
+      \    @staticmethod\n    def solar_zenith_angle(lat: float, lon: float, dt: datetime)\
+      \ -> float:\n        \"\"\"\n        计算太阳天顶角\n        \n        Args:\n    \
+      \        lat: 纬度 [度]\n            lon: 经度 [度] \n            dt: UTC时间\n    \
+      \        \n        Returns:\n            float: 太阳天顶角 [度]\n        \"\"\"\n\
+      \        # 儒略日\n        jd = dt.replace(tzinfo=timezone.utc).timestamp() / 86400.0\
+      \ + 2440587.5\n        \n        # 太阳赤纬角\n        n = jd - 2451545.0\n     \
+      \   L = (280.460 + 0.9856474 * n) % 360\n        g = math.radians((357.528 +\
+      \ 0.9856003 * n) % 360)\n        lambda_sun = math.radians(L + 1.915 * math.sin(g)\
+      \ + 0.020 * math.sin(2*g))\n        \n        declination = math.asin(math.sin(lambda_sun)\
+      \ * math.sin(math.radians(23.439)))\n        \n        # 时角\n        time_fraction\
+      \ = (dt.hour + dt.minute/60.0 + dt.second/3600.0) / 24.0\n        hour_angle\
+      \ = 2 * math.pi * (time_fraction - 0.5) + math.radians(lon)\n        \n    \
+      \    # 太阳天顶角\n        lat_rad = math.radians(lat)\n        cos_zenith = (math.sin(lat_rad)\
+      \ * math.sin(declination) + \n                     math.cos(lat_rad) * math.cos(declination)\
+      \ * math.cos(hour_angle))\n        \n        return math.degrees(math.acos(np.clip(cos_zenith,\
+      \ -1, 1)))\n    \n    @staticmethod\n    def magnetic_local_time(lon_mag: float,\
+      \ ut_hours: float) -> float:\n        \"\"\"\n        计算磁地方时\n        \n   \
+      \     Args:\n            lon_mag: 地磁经度 [度]\n            ut_hours: UT时间 [小时]\n\
+      \            \n        Returns:\n            float: 磁地方时 [小时]\n        \"\"\"\
+      \n        mlt = ut_hours + lon_mag / 15.0\n        return mlt % 24.0\n\n\nclass\
+      \ TimeStandards:\n    \"\"\"时间标准转换\"\"\"\n    \n    @staticmethod\n    def ut_to_lt(ut_datetime:\
+      \ datetime, longitude: float) -> datetime:\n        \"\"\"\n        UT转地方时\n\
+      \        \n        Args:\n            ut_datetime: UTC时间\n            longitude:\
+      \ 经度 [度]\n            \n        Returns:\n            datetime: 地方时\n      \
+      \  \"\"\"\n        import datetime as dt\n        offset_hours = longitude /\
+      \ 15.0\n        offset = dt.timedelta(hours=offset_hours)\n        return ut_datetime\
+      \ + offset\n    \n    @staticmethod\n    def seasonal_factor(day_of_year: int)\
+      \ -> float:\n        \"\"\"\n        计算季节因子\n        \n        Args:\n     \
+      \       day_of_year: 年积日\n            \n        Returns:\n            float:\
+      \ 季节因子\n        \"\"\"\n        return 1.0 + 0.1 * math.cos(2 * math.pi * (day_of_year\
+      \ - 81) / 365.25)"
+    explanation: 代码示例
+    language: python
+  - code: "\"\"\"\nGNSS电离层数据处理标准\n\"\"\"\n\nimport numpy as np\nimport pandas as pd\n\
+      from typing import List, Dict, Optional, Tuple\nfrom dataclasses import dataclass\n\
+      from enum import Enum\n\n\nclass GNSSConstellation(Enum):\n    \"\"\"GNSS星座\"\
+      \"\"\n    GPS = \"G\"\n    GLONASS = \"R\"\n    GALILEO = \"E\"\n    BEIDOU\
+      \ = \"C\"\n    QZSS = \"J\"\n\n\n@dataclass\nclass TECObservation:\n    \"\"\
+      \"TEC观测数据\"\"\"\n    timestamp: datetime\n    station_id: str\n    satellite_prn:\
+      \ str\n    constellation: GNSSConstellation\n    elevation: float        # 高度角\
+      \ [度]\n    azimuth: float         # 方位角 [度]\n    stec: float            # 倾斜TEC\
+      \ [TECU]\n    stec_error: float      # STEC误差 [TECU]\n    pierce_point_lat:\
+      \ float # 穿刺点纬度 [度]\n    pierce_point_lon: float # 穿刺点经度 [度]\n    mapping_function:\
+      \ float # 投影函数\n    cycle_slip_flag: bool   # 周跳标记\n\n\nclass TECProcessor:\n\
+      \    \"\"\"TEC数据处理器\"\"\"\n    \n    def __init__(self, ionosphere_height: float\
+      \ = 450.0):\n        \"\"\"\n        初始化TEC处理器\n        \n        Args:\n  \
+      \          ionosphere_height: 电离层薄壳高度 [km]\n        \"\"\"\n        self.h_ion\
+      \ = ionosphere_height\n        self.earth_radius = 6371.0  # 地球半径 [km]\n   \
+      \ \n    def mapping_function(self, elevation: float, height: float = None) ->\
+      \ float:\n        \"\"\"\n        计算投影函数\n        \n        Args:\n        \
+      \    elevation: 卫星高度角 [度]\n            height: 电离层高度 [km]\n            \n  \
+      \      Returns:\n            float: 投影函数\n        \"\"\"\n        if height\
+      \ is None:\n            height = self.h_ion\n            \n        elev_rad\
+      \ = math.radians(elevation)\n        \n        # 简单投影函数\n        if elevation\
+      \ >= 10.0:  # 高度角大于10度\n            mapping = 1.0 / math.sin(elev_rad)\n   \
+      \     else:\n            # 修正的投影函数\n            re = self.earth_radius\n   \
+      \         h = height\n            sin_elev = math.sin(elev_rad)\n          \
+      \  cos_elev = math.cos(elev_rad)\n            \n            mapping = 1.0 /\
+      \ math.sqrt(1 - (re / (re + h) * cos_elev)**2)\n        \n        return mapping\n\
+      \    \n    def pierce_point(self, station_lat: float, station_lon: float,\n\
+      \                    elevation: float, azimuth: float,\n                   \
+      \ height: float = None) -> Tuple[float, float]:\n        \"\"\"\n        计算电离层穿刺点\n\
+      \        \n        Args:\n            station_lat: 测站纬度 [度]\n            station_lon:\
+      \ 测站经度 [度]\n            elevation: 高度角 [度]\n            azimuth: 方位角 [度]\n \
+      \           height: 电离层高度 [km]\n            \n        Returns:\n           \
+      \ Tuple[float, float]: (纬度, 经度) [度]\n        \"\"\"\n        if height is None:\n\
+      \            height = self.h_ion\n        \n        # 转换为弧度\n        lat_rad\
+      \ = math.radians(station_lat)\n        lon_rad = math.radians(station_lon)\n\
+      \        elev_rad = math.radians(elevation)\n        az_rad = math.radians(azimuth)\n\
+      \        \n        # 地心角\n        re = self.earth_radius\n        psi = math.pi/2\
+      \ - elev_rad - math.asin(re / (re + height) * math.cos(elev_rad))\n        \n\
+      \        # 穿刺点纬度\n        pp_lat_rad = math.asin(math.sin(lat_rad) * math.cos(psi)\
+      \ + \n                              math.cos(lat_rad) * math.sin(psi) * math.cos(az_rad))\n\
+      \        \n        # 穿刺点经度\n        pp_lon_rad = lon_rad + math.asin(math.sin(psi)\
+      \ * math.sin(az_rad) / math.cos(pp_lat_rad))\n        \n        return math.degrees(pp_lat_rad),\
+      \ math.degrees(pp_lon_rad)\n    \n    def stec_to_vtec(self, stec: float, elevation:\
+      \ float) -> float:\n        \"\"\"\n        STEC转换为VTEC\n        \n        Args:\n\
+      \            stec: 倾斜TEC [TECU]\n            elevation: 高度角 [度]\n          \
+      \  \n        Returns:\n            float: 垂直TEC [TECU]\n        \"\"\"\n   \
+      \     mapping = self.mapping_function(elevation)\n        return stec / mapping\n\
+      \    \n    def cycle_slip_detection(self, tec_series: np.ndarray, \n       \
+      \                    time_series: np.ndarray,\n                           threshold:\
+      \ float = 2.0) -> np.ndarray:\n        \"\"\"\n        周跳检测\n        \n    \
+      \    Args:\n            tec_series: TEC时间序列 [TECU]\n            time_series:\
+      \ 时间序列 [小时]\n            threshold: 检测阈值 [TECU]\n            \n        Returns:\n\
+      \            np.ndarray: 周跳标记数组\n        \"\"\"\n        # 计算TEC变化率\n      \
+      \  dt = np.diff(time_series)\n        dtec = np.diff(tec_series)\n        dtec_rate\
+      \ = dtec / dt\n        \n        # 异常值检测\n        median_rate = np.median(dtec_rate)\n\
+      \        mad = np.median(np.abs(dtec_rate - median_rate))\n        \n      \
+      \  # 标记周跳\n        cycle_slips = np.zeros(len(tec_series), dtype=bool)\n   \
+      \     anomaly_mask = np.abs(dtec_rate - median_rate) > threshold * mad\n   \
+      \     cycle_slips[1:] = anomaly_mask\n        \n        return cycle_slips\n\
+      \    \n    def quality_control(self, observations: List[TECObservation],\n \
+      \                      min_elevation: float = 10.0,\n                      \
+      \ max_tec: float = 200.0) -> List[TECObservation]:\n        \"\"\"\n       \
+      \ 数据质量控制\n        \n        Args:\n            observations: TEC观测数据列表\n   \
+      \         min_elevation: 最小高度角 [度]\n            max_tec: 最大TEC值 [TECU]\n   \
+      \         \n        Returns:\n            List[TECObservation]: 质控后的观测数据\n \
+      \       \"\"\"\n        filtered_obs = []\n        \n        for obs in observations:\n\
+      \            # 高度角检查\n            if obs.elevation < min_elevation:\n      \
+      \          continue\n            \n            # TEC值检查\n            if obs.stec\
+      \ < 0 or obs.stec > max_tec:\n                continue\n            \n     \
+      \       # 周跳检查\n            if obs.cycle_slip_flag:\n                continue\n\
+      \            \n            # 误差检查\n            if obs.stec_error > 0.5 * obs.stec\
+      \ or obs.stec_error > 5.0:\n                continue\n            \n       \
+      \     filtered_obs.append(obs)\n        \n        return filtered_obs"
+    explanation: 代码示例
+    language: python
+  - code: "\"\"\"\n无线电掩星数据处理标准\n\"\"\"\n\nfrom typing import List, Dict, Tuple\nimport\
+      \ numpy as np\nfrom scipy.interpolate import interp1d\nfrom scipy.optimize import\
+      \ minimize_scalar\n\n\n@dataclass\nclass ROProfile:\n    \"\"\"无线电掩星廓线数据\"\"\
+      \"\n    timestamp: datetime\n    satellite_name: str\n    occultation_id: str\n\
+      \    lat: float              # 掩星点纬度 [度]\n    lon: float              # 掩星点经度\
+      \ [度]\n    heights: np.ndarray     # 高度 [km]\n    bending_angles: np.ndarray\
+      \  # 弯曲角 [微弧度]\n    impact_params: np.ndarray   # 冲击参数 [km]\n    snr: np.ndarray\
+      \         # 信噪比\n    quality_flags: np.ndarray   # 质量标记\n\n\nclass ROProcessor:\n\
+      \    \"\"\"无线电掩星处理器\"\"\"\n    \n    def __init__(self):\n        self.earth_radius\
+      \ = 6371.0  # 地球半径 [km]\n    \n    def abel_inversion(self, bending_angles:\
+      \ np.ndarray,\n                      impact_params: np.ndarray) -> Tuple[np.ndarray,\
+      \ np.ndarray]:\n        \"\"\"\n        Abel逆变换计算折射率\n        \n        Args:\n\
+      \            bending_angles: 弯曲角 [弧度]\n            impact_params: 冲击参数 [km]\n\
+      \            \n        Returns:\n            Tuple[np.ndarray, np.ndarray]:\
+      \ (高度[km], 折射率)\n        \"\"\"\n        # 排序确保单调性\n        sort_idx = np.argsort(impact_params)\n\
+      \        a_sorted = impact_params[sort_idx]\n        alpha_sorted = bending_angles[sort_idx]\n\
+      \        \n        # Abel积分\n        n_levels = len(a_sorted)\n        refractivity\
+      \ = np.zeros(n_levels)\n        \n        for i in range(n_levels):\n      \
+      \      a_i = a_sorted[i]\n            integral = 0.0\n            \n       \
+      \     for j in range(i, n_levels-1):\n                a_j = a_sorted[j]\n  \
+      \              a_j1 = a_sorted[j+1]\n                alpha_j = alpha_sorted[j]\n\
+      \                alpha_j1 = alpha_sorted[j+1]\n                \n          \
+      \      if a_j > a_i:\n                    # 梯形积分\n                    da = a_j1\
+      \ - a_j\n                    integrand_j = alpha_j / np.sqrt(a_j**2 - a_i**2)\n\
+      \                    integrand_j1 = alpha_j1 / np.sqrt(a_j1**2 - a_i**2)\n \
+      \                   integral += 0.5 * (integrand_j + integrand_j1) * da\n  \
+      \          \n            refractivity[i] = integral / np.pi\n        \n    \
+      \    # 转换为高度和折射率\n        heights = a_sorted - self.earth_radius\n        n\
+      \ = 1.0 + refractivity * 1e-6  # 假设干大气\n        \n        return heights, n\n\
+      \    \n    def extract_electron_density(self, refractivity_l1: np.ndarray,\n\
+      \                                refractivity_l2: np.ndarray,\n            \
+      \                    heights: np.ndarray,\n                                f1:\
+      \ float = 1575.42e6,\n                                f2: float = 1227.60e6)\
+      \ -> np.ndarray:\n        \"\"\"\n        从双频折射率提取电子浓度\n        \n        Args:\n\
+      \            refractivity_l1: L1频率折射率\n            refractivity_l2: L2频率折射率\
+      \  \n            heights: 高度 [km]\n            f1: L1频率 [Hz]\n            f2:\
+      \ L2频率 [Hz]\n            \n        Returns:\n            np.ndarray: 电子浓度 [m^-3]\n\
+      \        \"\"\"\n        # 电离层常数\n        K = 40.3  # [m^3/s^2]\n        \n\
+      \        # 电离层折射率差\n        delta_n = refractivity_l2 - refractivity_l1\n  \
+      \      \n        # 电子浓度\n        ne = -delta_n * f1**2 * f2**2 / (K * (f1**2\
+      \ - f2**2)) * 1e6\n        \n        return np.maximum(ne, 0)  # 确保非负值\n   \
+      \ \n    def quality_control_ro(self, profile: ROProfile) -> ROProfile:\n   \
+      \     \"\"\"\n        无线电掩星数据质量控制\n        \n        Args:\n            profile:\
+      \ 掩星廓线数据\n            \n        Returns:\n            ROProfile: 质控后的廓线数据\n\
+      \        \"\"\"\n        # 高度范围检查\n        valid_height = (profile.heights >=\
+      \ 0) & (profile.heights <= 100)\n        \n        # 信噪比检查\n        valid_snr\
+      \ = profile.snr > 100  # V/V\n        \n        # 弯曲角合理性检查\n        valid_bending\
+      \ = (profile.bending_angles > 0) & (profile.bending_angles < 0.1)  # 弧度\n  \
+      \      \n        # 组合质量标记\n        valid_mask = valid_height & valid_snr & valid_bending\n\
+      \        \n        # 过滤数据\n        filtered_profile = ROProfile(\n         \
+      \   timestamp=profile.timestamp,\n            satellite_name=profile.satellite_name,\n\
+      \            occultation_id=profile.occultation_id,\n            lat=profile.lat,\n\
+      \            lon=profile.lon,\n            heights=profile.heights[valid_mask],\n\
+      \            bending_angles=profile.bending_angles[valid_mask],\n          \
+      \  impact_params=profile.impact_params[valid_mask],\n            snr=profile.snr[valid_mask],\n\
+      \            quality_flags=profile.quality_flags[valid_mask]\n        )\n  \
+      \      \n        return filtered_profile"
+    explanation: 代码示例
+    language: python
+  - code: "\"\"\"\n电离层经验模型实现\n\"\"\"\n\nimport numpy as np\nfrom typing import Optional,\
+      \ Dict, List\nfrom datetime import datetime\nimport math\n\n\nclass IRI2020Model:\n\
+      \    \"\"\"IRI2020国际参考电离层模型（简化版本）\"\"\"\n    \n    def __init__(self):\n   \
+      \     self.name = \"IRI2020\"\n        self.version = \"2020\"\n    \n    def\
+      \ electron_density_profile(self, lat: float, lon: float, \n                \
+      \                dt: datetime, heights: np.ndarray,\n                      \
+      \          solar_activity: Optional[Dict] = None) -> np.ndarray:\n        \"\
+      \"\"\n        计算电子浓度廓线\n        \n        Args:\n            lat: 纬度 [度]\n \
+      \           lon: 经度 [度]\n            dt: UTC时间\n            heights: 高度数组 [km]\n\
+      \            solar_activity: 太阳活动参数\n            \n        Returns:\n      \
+      \      np.ndarray: 电子浓度 [m^-3]\n        \"\"\"\n        if solar_activity is\
+      \ None:\n            f107 = 150.0  # 默认F10.7值\n            ap = 15.0     # 默认Ap指数\n\
+      \        else:\n            f107 = solar_activity.get('f107', 150.0)\n     \
+      \       ap = solar_activity.get('ap', 15.0)\n        \n        # 太阳天顶角\n   \
+      \     sza = CoordinateSystem.solar_zenith_angle(lat, lon, dt)\n        \n  \
+      \      # Chapman函数参数\n        nm_f2 = self._calculate_nm_f2(lat, dt, f107)\n\
+      \        hm_f2 = self._calculate_hm_f2(lat, dt, f107)\n        b0 = self._calculate_b0(lat,\
+      \ dt)\n        \n        # 电子浓度廓线\n        ne = np.zeros_like(heights)\n   \
+      \     \n        for i, h in enumerate(heights):\n            if h <= hm_f2:\n\
+      \                # F2层以下：抛物线\n                ne[i] = nm_f2 * (1 - ((hm_f2 -\
+      \ h) / b0)**2)\n            else:\n                # F2层以上：指数衰减\n          \
+      \      scale_height = 100.0  # km\n                ne[i] = nm_f2 * np.exp(-(h\
+      \ - hm_f2) / scale_height)\n        \n        # 太阳天顶角修正\n        sza_factor\
+      \ = max(0.1, np.cos(np.radians(sza))**0.5)\n        ne *= sza_factor\n     \
+      \   \n        return np.maximum(ne, 0)\n    \n    def _calculate_nm_f2(self,\
+      \ lat: float, dt: datetime, f107: float) -> float:\n        \"\"\"计算F2层峰值电子浓度\"\
+      \"\"\n        # 简化的纬度和太阳活动依赖\n        lat_factor = 1.0 - 0.3 * (abs(lat) / 90.0)**2\n\
+      \        solar_factor = (f107 / 150.0)**0.5\n        base_nm = 5e11  # m^-3\n\
+      \        \n        return base_nm * lat_factor * solar_factor\n    \n    def\
+      \ _calculate_hm_f2(self, lat: float, dt: datetime, f107: float) -> float:\n\
+      \        \"\"\"计算F2层峰值高度\"\"\"\n        # 简化的纬度依赖\n        base_hm = 300.0 \
+      \ # km\n        lat_correction = -50.0 * (abs(lat) / 90.0)**2\n        solar_correction\
+      \ = 20.0 * (f107 - 150.0) / 150.0\n        \n        return base_hm + lat_correction\
+      \ + solar_correction\n    \n    def _calculate_b0(self, lat: float, dt: datetime)\
+      \ -> float:\n        \"\"\"计算厚度参数\"\"\"\n        return 100.0  # km，简化固定值\n\n\
+      \nclass NeQuickModel:\n    \"\"\"NeQuick电离层模型\"\"\"\n    \n    def __init__(self):\n\
+      \        self.name = \"NeQuick\"\n        self.version = \"G\"\n    \n    def\
+      \ total_electron_content(self, lat1: float, lon1: float,\n                 \
+      \             lat2: float, lon2: float,\n                              dt: datetime,\
+      \ solar_activity: Dict) -> float:\n        \"\"\"\n        计算路径积分TEC\n     \
+      \   \n        Args:\n            lat1, lon1: 起点坐标 [度]\n            lat2, lon2:\
+      \ 终点坐标 [度]\n            dt: UTC时间\n            solar_activity: 太阳活动参数\n    \
+      \        \n        Returns:\n            float: TEC [TECU]\n        \"\"\"\n\
+      \        # 路径积分点\n        n_points = 100\n        lats = np.linspace(lat1, lat2,\
+      \ n_points)\n        lons = np.linspace(lon1, lon2, n_points)\n        \n  \
+      \      # 高度积分\n        heights = np.linspace(80, 2000, 100)  # km\n        \n\
+      \        tec = 0.0\n        path_length = self._calculate_path_length(lat1,\
+      \ lon1, lat2, lon2) / n_points\n        \n        for lat, lon in zip(lats,\
+      \ lons):\n            # 计算该点的电子浓度廓线\n            ne_profile = self._electron_density_profile(lat,\
+      \ lon, dt, heights, solar_activity)\n            \n            # 高度积分\n    \
+      \        column_density = np.trapz(ne_profile, heights * 1000)  # 转换为m\n   \
+      \         \n            # 路径积分\n            tec += column_density * path_length\
+      \ * 1000  # 转换为m\n        \n        return tec / 1e16  # 转换为TECU\n    \n   \
+      \ def _calculate_path_length(self, lat1: float, lon1: float, \n            \
+      \                  lat2: float, lon2: float) -> float:\n        \"\"\"计算球面距离\"\
+      \"\"\n        # Haversine公式\n        dlat = math.radians(lat2 - lat1)\n    \
+      \    dlon = math.radians(lon2 - lon1)\n        \n        a = (math.sin(dlat/2)**2\
+      \ + \n             math.cos(math.radians(lat1)) * math.cos(math.radians(lat2))\
+      \ * \n             math.sin(dlon/2)**2)\n        \n        c = 2 * math.atan2(math.sqrt(a),\
+      \ math.sqrt(1-a))\n        \n        return 6371.0 * c  # km\n    \n    def\
+      \ _electron_density_profile(self, lat: float, lon: float,\n                \
+      \                 dt: datetime, heights: np.ndarray,\n                     \
+      \            solar_activity: Dict) -> np.ndarray:\n        \"\"\"NeQuick电子浓度廓线计算\"\
+      \"\"\n        # 这里应该实现完整的NeQuick算法\n        # 简化版本，使用类似IRI的方法\n        iri_model\
+      \ = IRI2020Model()\n        return iri_model.electron_density_profile(lat, lon,\
+      \ dt, heights, solar_activity)\n\n\n# 模型验证工具\nclass ModelValidation:\n    \"\
+      \"\"模型验证工具\"\"\"\n    \n    @staticmethod\n    def calculate_statistics(observed:\
+      \ np.ndarray, modeled: np.ndarray) -> Dict[str, float]:\n        \"\"\"\n  \
+      \      计算统计指标\n        \n        Args:\n            observed: 观测值\n        \
+      \    modeled: 模拟值\n            \n        Returns:\n            Dict[str, float]:\
+      \ 统计指标\n        \"\"\"\n        # 移除无效值\n        valid_mask = ~(np.isnan(observed)\
+      \ | np.isnan(modeled))\n        obs_clean = observed[valid_mask]\n        mod_clean\
+      \ = modeled[valid_mask]\n        \n        if len(obs_clean) == 0:\n       \
+      \     return {'n': 0}\n        \n        # 计算统计量\n        bias = np.mean(mod_clean\
+      \ - obs_clean)\n        rmse = np.sqrt(np.mean((mod_clean - obs_clean)**2))\n\
+      \        mae = np.mean(np.abs(mod_clean - obs_clean))\n        correlation =\
+      \ np.corrcoef(obs_clean, mod_clean)[0, 1]\n        \n        # 相对误差\n      \
+      \  rel_bias = bias / np.mean(obs_clean) * 100\n        rel_rmse = rmse / np.mean(obs_clean)\
+      \ * 100\n        \n        return {\n            'n': len(obs_clean),\n    \
+      \        'bias': bias,\n            'rmse': rmse,\n            'mae': mae,\n\
+      \            'correlation': correlation,\n            'rel_bias_percent': rel_bias,\n\
+      \            'rel_rmse_percent': rel_rmse\n        }\n    \n    @staticmethod\n\
+      \    def seasonal_validation(observations: List[TECObservation],\n         \
+      \                 model: Union[IRI2020Model, NeQuickModel]) -> Dict[str, Dict]:\n\
+      \        \"\"\"\n        季节性验证分析\n        \n        Args:\n            observations:\
+      \ 观测数据列表\n            model: 电离层模型\n            \n        Returns:\n       \
+      \     Dict[str, Dict]: 各季节的验证结果\n        \"\"\"\n        seasons = {\n     \
+      \       'spring': [3, 4, 5],\n            'summer': [6, 7, 8], \n          \
+      \  'autumn': [9, 10, 11],\n            'winter': [12, 1, 2]\n        }\n   \
+      \     \n        results = {}\n        \n        for season_name, months in seasons.items():\n\
+      \            # 筛选季节数据\n            season_obs = [obs for obs in observations\
+      \ \n                         if obs.timestamp.month in months]\n           \
+      \ \n            if len(season_obs) == 0:\n                continue\n       \
+      \     \n            # 计算模型值\n            observed_tec = np.array([obs.stec for\
+      \ obs in season_obs])\n            modeled_tec = np.zeros_like(observed_tec)\n\
+      \            \n            for i, obs in enumerate(season_obs):\n          \
+      \      # 这里需要根据具体模型调用相应方法\n                if isinstance(model, IRI2020Model):\n\
+      \                    # 简化：直接使用TEC估算\n                    heights = np.linspace(80,\
+      \ 1000, 100)\n                    ne_profile = model.electron_density_profile(\n\
+      \                        obs.pierce_point_lat, obs.pierce_point_lon,\n     \
+      \                   obs.timestamp, heights\n                    )\n        \
+      \            modeled_tec[i] = np.trapz(ne_profile, heights * 1000) / 1e16\n\
+      \            \n            # 计算统计指标\n            stats = ModelValidation.calculate_statistics(observed_tec,\
+      \ modeled_tec)\n            results[season_name] = stats\n        \n       \
+      \ return results"
+    explanation: 代码示例
+    language: python
+  - code: '# ❌ 避免：不正确的单位使用
+
+      tec_value = 50  # 未指明单位，容易混淆
+
+
+      # ❌ 避免：忽略地磁坐标系
+
+      lat_mag = lat_geo  # 直接使用地理坐标作为地磁坐标
+
+
+      # ❌ 避免：不考虑太阳活动
+
+      ne = constant_value  # 忽略太阳活动的影响'
+    explanation: 代码示例
+    language: python
+  - code: "# ✅ 推荐：明确单位和坐标系\ntec_tecu = 50.0  # TECU\ntec_m2 = tecu_to_m2(tec_tecu)\
+      \  # m^-2\n\n# ✅ 推荐：正确的坐标转换\nlat_mag, lon_mag = CoordinateSystem.geographic_to_geomagnetic(\n\
+      \    lat_geo, lon_geo, year=2023\n)\n\n# ✅ 推荐：考虑太阳活动\nsolar_params = {'f107':\
+      \ 150.0, 'ap': 15.0}\nne = model.electron_density(lat, lon, dt, height, solar_params)"
+    explanation: 代码示例
+    language: python
+  guideline: "**1. 电离层基本参数**\n\n```python\n\"\"\"\n电离层基本参数定义\nAuthor: Mapoet\nDate:\
+    \ 2025-01-15\n\"\"\"\n\nimport numpy as np\nfrom typing import Dict, Tuple, Optional\n\
+    from dataclasses import dataclass\nfrom enum import Enum\n\n\nclass IonoLayer(Enum):\n\
+    \    \"\"\"电离层分层定义\"\"\"\n    D_LAYER = \"D\"      # D层 (60-90 km)\n    E_LAYER\
+    \ = \"E\"      # E层 (90-130 km)\n    F1_LAYER = \"F1\"    # F1层 (130-210 km)\n\
+    \    F2_LAYER = \"F2\"    # F2层 (210-800 km)\n    TOPSIDE = \"TOP\"    # 顶部电离层\
+    \ (>800 km)\n\n\n@dataclass\nclass IonoParams:\n    \"\"\"电离层基本参数\"\"\"\n    \n\
+    \    # 电子浓度相关\n    ne: float                    # 电子浓度 [m^-3]\n    ne_max: float\
+    \               # 峰值电子浓度 [m^-3]\n    h_max: float                # 峰值高度 [km]\n\
+    \    scale_height: float         # 标高 [km]\n    \n    # Total Electron Content\n\
+    \    tec: float                  # 总电子含量 [TECU] (1 TECU = 10^16 m^-2)\n    vtec:\
+    \ float                 # 垂直TEC [TECU]\n    stec: float                 # 倾斜TEC\
+    \ [TECU]\n    \n    # 碰撞频率\n    nu_en: float               # 电子-中性粒子碰撞频率 [Hz]\n\
+    \    nu_ei: float               # 电子-离子碰撞频率 [Hz]\n    nu_in: float           \
+    \    # 离子-中性粒子碰撞频率 [Hz]\n    \n    # 等离子体频率\n    f_pe: float                #\
+    \ 电子等离子体频率 [Hz]\n    f_pi: float                # 离子等离子体频率 [Hz]\n    \n    # 回旋频率\n\
+    \    f_ce: float                # 电子回旋频率 [Hz]\n    f_ci: float               \
+    \ # 离子回旋频率 [Hz]\n    \n    # 地磁场参数\n    b_total: float             # 总磁场强度 [nT]\n\
+    \    b_horizontal: float        # 水平分量 [nT]\n    b_vertical: float          #\
+    \ 垂直分量 [nT]\n    declination: float         # 磁偏角 [度]\n    inclination: float\
+    \         # 磁倾角 [度]\n\n\nclass IonoPhysics:\n    \"\"\"电离层物理计算类\"\"\"\n    \n\
+    \    # 物理常数\n    ELECTRON_CHARGE = 1.602176634e-19      # 电子电荷 [C]\n    ELECTRON_MASS\
+    \ = 9.1093837015e-31       # 电子质量 [kg]\n    PROTON_MASS = 1.67262192369e-27  \
+    \      # 质子质量 [kg]\n    VACUUM_PERMITTIVITY = 8.8541878128e-12 # 真空介电常数 [F/m]\n\
+    \    BOLTZMANN = 1.380649e-23               # 玻尔兹曼常数 [J/K]\n    \n    @staticmethod\n\
+    \    def plasma_frequency(ne: float) -> float:\n        \"\"\"\n        计算等离子体频率\n\
+    \        \n        Args:\n            ne: 电子浓度 [m^-3]\n            \n        Returns:\n\
+    \            float: 等离子体频率 [Hz]\n        \"\"\"\n        return np.sqrt(ne * IonoPhysics.ELECTRON_CHARGE**2\
+    \ / \n                      (IonoPhysics.ELECTRON_MASS * IonoPhysics.VACUUM_PERMITTIVITY))\
+    \ / (2 * np.pi)\n    \n    @staticmethod\n    def critical_frequency(ne_max: float)\
+    \ -> float:\n        \"\"\"\n        计算临界频率\n        \n        Args:\n       \
+    \     ne_max: 峰值电子浓度 [m^-3]\n            \n        Returns:\n            float:\
+    \ 临界频率 [MHz]\n        \"\"\"\n        f_pe = IonoPhysics.plasma_frequency(ne_max)\n\
+    \        return f_pe / 1e6  # 转换为MHz\n    \n    @staticmethod\n    def gyro_frequency(b_field:\
+    \ float, mass: float, charge: float) -> float:\n        \"\"\"\n        计算回旋频率\n\
+    \        \n        Args:\n            b_field: 磁场强度 [T]\n            mass: 粒子质量\
+    \ [kg]\n            charge: 粒子电荷 [C]\n            \n        Returns:\n       \
+    \     float: 回旋频率 [Hz]\n        \"\"\"\n        return charge * b_field / (2 *\
+    \ np.pi * mass)\n    \n    @staticmethod\n    def scale_height(temperature: float,\
+    \ mass: float, gravity: float = 9.81) -> float:\n        \"\"\"\n        计算大气标高\n\
+    \        \n        Args:\n            temperature: 温度 [K]\n            mass: 分子质量\
+    \ [kg]\n            gravity: 重力加速度 [m/s^2]\n            \n        Returns:\n \
+    \           float: 标高 [m]\n        \"\"\"\n        return IonoPhysics.BOLTZMANN\
+    \ * temperature / (mass * gravity)\n    \n    @staticmethod\n    def refractive_index(f:\
+    \ float, ne: float) -> complex:\n        \"\"\"\n        计算电离层折射率\n        \n\
+    \        Args:\n            f: 电磁波频率 [Hz]\n            ne: 电子浓度 [m^-3]\n     \
+    \       \n        Returns:\n            complex: 复折射率\n        \"\"\"\n      \
+    \  f_pe = IonoPhysics.plasma_frequency(ne)\n        x = (f_pe / f)**2\n      \
+    \  \n        # 简化情况（忽略磁场和碰撞）\n        if x < 1:\n            n = np.sqrt(1 - x)\n\
+    \        else:\n            n = 1j * np.sqrt(x - 1)\n        \n        return\
+    \ n"
+  pattern: null
+  priority: 7
+- condition: main_rule_1_2
+  examples: []
+  guideline: "**单位转换函数**\n\ndef tecu_to_m2(tec_tecu: float) -> float:\n    \"\"\"\
+    TECU转换为m^-2\"\"\"\n    return tec_tecu * 1e16\n\ndef m2_to_tecu(tec_m2: float)\
+    \ -> float:\n    \"\"\"m^-2转换为TECU\"\"\"\n    return tec_m2 / 1e16\n\ndef mhz_to_ne(f_critical_mhz:\
+    \ float) -> float:\n    \"\"\"临界频率(MHz)转换为电子浓度(m^-3)\"\"\"\n    f_hz = f_critical_mhz\
+    \ * 1e6\n    return (f_hz * 2 * np.pi)**2 * IonoPhysics.ELECTRON_MASS * IonoPhysics.VACUUM_PERMITTIVITY\
+    \ / IonoPhysics.ELECTRON_CHARGE**2\n\ndef ne_to_mhz(ne: float) -> float:\n   \
+    \ \"\"\"电子浓度(m^-3)转换为临界频率(MHz)\"\"\"\n    return IonoPhysics.critical_frequency(ne)\n\
+    ```"
+  pattern: null
+  priority: 9
+- condition: main_rule_3_3
+  examples: []
+  guideline: "**2. 坐标系统与时间标准**\n\n```python\n\"\"\"\n电离层研究中的坐标系统和时间标准\n\"\"\"\n\n\
+    import numpy as np\nfrom datetime import datetime, timezone\nfrom typing import\
+    \ Tuple, Union\nimport math\n\n\nclass CoordinateSystem:\n    \"\"\"坐标系统转换\"\"\
+    \"\n    \n    @staticmethod\n    def geographic_to_geomagnetic(lat_geo: float,\
+    \ lon_geo: float, \n                                 year: float) -> Tuple[float,\
+    \ float]:\n        \"\"\"\n        地理坐标转地磁坐标\n        \n        Args:\n      \
+    \      lat_geo: 地理纬度 [度]\n            lon_geo: 地理经度 [度]\n            year: 年份（用于磁极位置）\n\
+    \            \n        Returns:\n            Tuple[float, float]: (地磁纬度, 地磁经度)\
+    \ [度]\n        \"\"\"\n        # 简化计算，实际应使用IGRF模型\n        # 2020年地磁北极位置\n   \
+    \     mag_pole_lat = 80.65  # 地磁北极纬度\n        mag_pole_lon = -72.68  # 地磁北极经度\n\
+    \        \n        # 球面三角学转换\n        lat_geo_rad = math.radians(lat_geo)\n  \
+    \      lon_geo_rad = math.radians(lon_geo)\n        mag_pole_lat_rad = math.radians(mag_pole_lat)\n\
+    \        mag_pole_lon_rad = math.radians(mag_pole_lon)\n        \n        # 计算地磁纬度\n\
+    \        cos_lat_mag = (math.sin(lat_geo_rad) * math.sin(mag_pole_lat_rad) + \n\
+    \                      math.cos(lat_geo_rad) * math.cos(mag_pole_lat_rad) * \n\
+    \                      math.cos(lon_geo_rad - mag_pole_lon_rad))\n        lat_mag\
+    \ = math.degrees(math.acos(cos_lat_mag)) - 90\n        \n        # 计算地磁经度（简化）\n\
+    \        lon_mag = lon_geo - mag_pole_lon\n        if lon_mag > 180:\n       \
+    \     lon_mag -= 360\n        elif lon_mag < -180:\n            lon_mag += 360\n\
+    \            \n        return lat_mag, lon_mag\n    \n    @staticmethod\n    def\
+    \ solar_zenith_angle(lat: float, lon: float, dt: datetime) -> float:\n       \
+    \ \"\"\"\n        计算太阳天顶角\n        \n        Args:\n            lat: 纬度 [度]\n\
+    \            lon: 经度 [度] \n            dt: UTC时间\n            \n        Returns:\n\
+    \            float: 太阳天顶角 [度]\n        \"\"\"\n        # 儒略日\n        jd = dt.replace(tzinfo=timezone.utc).timestamp()\
+    \ / 86400.0 + 2440587.5\n        \n        # 太阳赤纬角\n        n = jd - 2451545.0\n\
+    \        L = (280.460 + 0.9856474 * n) % 360\n        g = math.radians((357.528\
+    \ + 0.9856003 * n) % 360)\n        lambda_sun = math.radians(L + 1.915 * math.sin(g)\
+    \ + 0.020 * math.sin(2*g))\n        \n        declination = math.asin(math.sin(lambda_sun)\
+    \ * math.sin(math.radians(23.439)))\n        \n        # 时角\n        time_fraction\
+    \ = (dt.hour + dt.minute/60.0 + dt.second/3600.0) / 24.0\n        hour_angle =\
+    \ 2 * math.pi * (time_fraction - 0.5) + math.radians(lon)\n        \n        #\
+    \ 太阳天顶角\n        lat_rad = math.radians(lat)\n        cos_zenith = (math.sin(lat_rad)\
+    \ * math.sin(declination) + \n                     math.cos(lat_rad) * math.cos(declination)\
+    \ * math.cos(hour_angle))\n        \n        return math.degrees(math.acos(np.clip(cos_zenith,\
+    \ -1, 1)))\n    \n    @staticmethod\n    def magnetic_local_time(lon_mag: float,\
+    \ ut_hours: float) -> float:\n        \"\"\"\n        计算磁地方时\n        \n     \
+    \   Args:\n            lon_mag: 地磁经度 [度]\n            ut_hours: UT时间 [小时]\n  \
+    \          \n        Returns:\n            float: 磁地方时 [小时]\n        \"\"\"\n\
+    \        mlt = ut_hours + lon_mag / 15.0\n        return mlt % 24.0\n\n\nclass\
+    \ TimeStandards:\n    \"\"\"时间标准转换\"\"\"\n    \n    @staticmethod\n    def ut_to_lt(ut_datetime:\
+    \ datetime, longitude: float) -> datetime:\n        \"\"\"\n        UT转地方时\n \
+    \       \n        Args:\n            ut_datetime: UTC时间\n            longitude:\
+    \ 经度 [度]\n            \n        Returns:\n            datetime: 地方时\n        \"\
+    \"\"\n        import datetime as dt\n        offset_hours = longitude / 15.0\n\
+    \        offset = dt.timedelta(hours=offset_hours)\n        return ut_datetime\
+    \ + offset\n    \n    @staticmethod\n    def seasonal_factor(day_of_year: int)\
+    \ -> float:\n        \"\"\"\n        计算季节因子\n        \n        Args:\n       \
+    \     day_of_year: 年积日\n            \n        Returns:\n            float: 季节因子\n\
+    \        \"\"\"\n        return 1.0 + 0.1 * math.cos(2 * math.pi * (day_of_year\
+    \ - 81) / 365.25)\n```"
+  pattern: null
+  priority: 7
+- condition: main_rule_3_4
+  examples: []
+  guideline: "**1. GNSS电离层数据处理**\n\n```python\n\"\"\"\nGNSS电离层数据处理标准\n\"\"\"\n\nimport\
+    \ numpy as np\nimport pandas as pd\nfrom typing import List, Dict, Optional, Tuple\n\
+    from dataclasses import dataclass\nfrom enum import Enum\n\n\nclass GNSSConstellation(Enum):\n\
+    \    \"\"\"GNSS星座\"\"\"\n    GPS = \"G\"\n    GLONASS = \"R\"\n    GALILEO = \"\
+    E\"\n    BEIDOU = \"C\"\n    QZSS = \"J\"\n\n\n@dataclass\nclass TECObservation:\n\
+    \    \"\"\"TEC观测数据\"\"\"\n    timestamp: datetime\n    station_id: str\n    satellite_prn:\
+    \ str\n    constellation: GNSSConstellation\n    elevation: float        # 高度角\
+    \ [度]\n    azimuth: float         # 方位角 [度]\n    stec: float            # 倾斜TEC\
+    \ [TECU]\n    stec_error: float      # STEC误差 [TECU]\n    pierce_point_lat: float\
+    \ # 穿刺点纬度 [度]\n    pierce_point_lon: float # 穿刺点经度 [度]\n    mapping_function:\
+    \ float # 投影函数\n    cycle_slip_flag: bool   # 周跳标记\n\n\nclass TECProcessor:\n\
+    \    \"\"\"TEC数据处理器\"\"\"\n    \n    def __init__(self, ionosphere_height: float\
+    \ = 450.0):\n        \"\"\"\n        初始化TEC处理器\n        \n        Args:\n    \
+    \        ionosphere_height: 电离层薄壳高度 [km]\n        \"\"\"\n        self.h_ion =\
+    \ ionosphere_height\n        self.earth_radius = 6371.0  # 地球半径 [km]\n    \n \
+    \   def mapping_function(self, elevation: float, height: float = None) -> float:\n\
+    \        \"\"\"\n        计算投影函数\n        \n        Args:\n            elevation:\
+    \ 卫星高度角 [度]\n            height: 电离层高度 [km]\n            \n        Returns:\n\
+    \            float: 投影函数\n        \"\"\"\n        if height is None:\n       \
+    \     height = self.h_ion\n            \n        elev_rad = math.radians(elevation)\n\
+    \        \n        # 简单投影函数\n        if elevation >= 10.0:  # 高度角大于10度\n     \
+    \       mapping = 1.0 / math.sin(elev_rad)\n        else:\n            # 修正的投影函数\n\
+    \            re = self.earth_radius\n            h = height\n            sin_elev\
+    \ = math.sin(elev_rad)\n            cos_elev = math.cos(elev_rad)\n          \
+    \  \n            mapping = 1.0 / math.sqrt(1 - (re / (re + h) * cos_elev)**2)\n\
+    \        \n        return mapping\n    \n    def pierce_point(self, station_lat:\
+    \ float, station_lon: float,\n                    elevation: float, azimuth: float,\n\
+    \                    height: float = None) -> Tuple[float, float]:\n        \"\
+    \"\"\n        计算电离层穿刺点\n        \n        Args:\n            station_lat: 测站纬度\
+    \ [度]\n            station_lon: 测站经度 [度]\n            elevation: 高度角 [度]\n   \
+    \         azimuth: 方位角 [度]\n            height: 电离层高度 [km]\n            \n   \
+    \     Returns:\n            Tuple[float, float]: (纬度, 经度) [度]\n        \"\"\"\n\
+    \        if height is None:\n            height = self.h_ion\n        \n     \
+    \   # 转换为弧度\n        lat_rad = math.radians(station_lat)\n        lon_rad = math.radians(station_lon)\n\
+    \        elev_rad = math.radians(elevation)\n        az_rad = math.radians(azimuth)\n\
+    \        \n        # 地心角\n        re = self.earth_radius\n        psi = math.pi/2\
+    \ - elev_rad - math.asin(re / (re + height) * math.cos(elev_rad))\n        \n\
+    \        # 穿刺点纬度\n        pp_lat_rad = math.asin(math.sin(lat_rad) * math.cos(psi)\
+    \ + \n                              math.cos(lat_rad) * math.sin(psi) * math.cos(az_rad))\n\
+    \        \n        # 穿刺点经度\n        pp_lon_rad = lon_rad + math.asin(math.sin(psi)\
+    \ * math.sin(az_rad) / math.cos(pp_lat_rad))\n        \n        return math.degrees(pp_lat_rad),\
+    \ math.degrees(pp_lon_rad)\n    \n    def stec_to_vtec(self, stec: float, elevation:\
+    \ float) -> float:\n        \"\"\"\n        STEC转换为VTEC\n        \n        Args:\n\
+    \            stec: 倾斜TEC [TECU]\n            elevation: 高度角 [度]\n            \n\
+    \        Returns:\n            float: 垂直TEC [TECU]\n        \"\"\"\n        mapping\
+    \ = self.mapping_function(elevation)\n        return stec / mapping\n    \n  \
+    \  def cycle_slip_detection(self, tec_series: np.ndarray, \n                 \
+    \          time_series: np.ndarray,\n                           threshold: float\
+    \ = 2.0) -> np.ndarray:\n        \"\"\"\n        周跳检测\n        \n        Args:\n\
+    \            tec_series: TEC时间序列 [TECU]\n            time_series: 时间序列 [小时]\n\
+    \            threshold: 检测阈值 [TECU]\n            \n        Returns:\n        \
+    \    np.ndarray: 周跳标记数组\n        \"\"\"\n        # 计算TEC变化率\n        dt = np.diff(time_series)\n\
+    \        dtec = np.diff(tec_series)\n        dtec_rate = dtec / dt\n        \n\
+    \        # 异常值检测\n        median_rate = np.median(dtec_rate)\n        mad = np.median(np.abs(dtec_rate\
+    \ - median_rate))\n        \n        # 标记周跳\n        cycle_slips = np.zeros(len(tec_series),\
+    \ dtype=bool)\n        anomaly_mask = np.abs(dtec_rate - median_rate) > threshold\
+    \ * mad\n        cycle_slips[1:] = anomaly_mask\n        \n        return cycle_slips\n\
+    \    \n    def quality_control(self, observations: List[TECObservation],\n   \
+    \                    min_elevation: float = 10.0,\n                       max_tec:\
+    \ float = 200.0) -> List[TECObservation]:\n        \"\"\"\n        数据质量控制\n  \
+    \      \n        Args:\n            observations: TEC观测数据列表\n            min_elevation:\
+    \ 最小高度角 [度]\n            max_tec: 最大TEC值 [TECU]\n            \n        Returns:\n\
+    \            List[TECObservation]: 质控后的观测数据\n        \"\"\"\n        filtered_obs\
+    \ = []\n        \n        for obs in observations:\n            # 高度角检查\n    \
+    \        if obs.elevation < min_elevation:\n                continue\n       \
+    \     \n            # TEC值检查\n            if obs.stec < 0 or obs.stec > max_tec:\n\
+    \                continue\n            \n            # 周跳检查\n            if obs.cycle_slip_flag:\n\
+    \                continue\n            \n            # 误差检查\n            if obs.stec_error\
+    \ > 0.5 * obs.stec or obs.stec_error > 5.0:\n                continue\n      \
+    \      \n            filtered_obs.append(obs)\n        \n        return filtered_obs\n\
+    ```"
+  pattern: null
+  priority: 7
+- condition: main_rule_3_5
+  examples: []
+  guideline: "**2. 无线电掩星数据处理**\n\n```python\n\"\"\"\n无线电掩星数据处理标准\n\"\"\"\n\nfrom typing\
+    \ import List, Dict, Tuple\nimport numpy as np\nfrom scipy.interpolate import\
+    \ interp1d\nfrom scipy.optimize import minimize_scalar\n\n\n@dataclass\nclass\
+    \ ROProfile:\n    \"\"\"无线电掩星廓线数据\"\"\"\n    timestamp: datetime\n    satellite_name:\
+    \ str\n    occultation_id: str\n    lat: float              # 掩星点纬度 [度]\n    lon:\
+    \ float              # 掩星点经度 [度]\n    heights: np.ndarray     # 高度 [km]\n    bending_angles:\
+    \ np.ndarray  # 弯曲角 [微弧度]\n    impact_params: np.ndarray   # 冲击参数 [km]\n    snr:\
+    \ np.ndarray         # 信噪比\n    quality_flags: np.ndarray   # 质量标记\n\n\nclass\
+    \ ROProcessor:\n    \"\"\"无线电掩星处理器\"\"\"\n    \n    def __init__(self):\n    \
+    \    self.earth_radius = 6371.0  # 地球半径 [km]\n    \n    def abel_inversion(self,\
+    \ bending_angles: np.ndarray,\n                      impact_params: np.ndarray)\
+    \ -> Tuple[np.ndarray, np.ndarray]:\n        \"\"\"\n        Abel逆变换计算折射率\n  \
+    \      \n        Args:\n            bending_angles: 弯曲角 [弧度]\n            impact_params:\
+    \ 冲击参数 [km]\n            \n        Returns:\n            Tuple[np.ndarray, np.ndarray]:\
+    \ (高度[km], 折射率)\n        \"\"\"\n        # 排序确保单调性\n        sort_idx = np.argsort(impact_params)\n\
+    \        a_sorted = impact_params[sort_idx]\n        alpha_sorted = bending_angles[sort_idx]\n\
+    \        \n        # Abel积分\n        n_levels = len(a_sorted)\n        refractivity\
+    \ = np.zeros(n_levels)\n        \n        for i in range(n_levels):\n        \
+    \    a_i = a_sorted[i]\n            integral = 0.0\n            \n           \
+    \ for j in range(i, n_levels-1):\n                a_j = a_sorted[j]\n        \
+    \        a_j1 = a_sorted[j+1]\n                alpha_j = alpha_sorted[j]\n   \
+    \             alpha_j1 = alpha_sorted[j+1]\n                \n               \
+    \ if a_j > a_i:\n                    # 梯形积分\n                    da = a_j1 - a_j\n\
+    \                    integrand_j = alpha_j / np.sqrt(a_j**2 - a_i**2)\n      \
+    \              integrand_j1 = alpha_j1 / np.sqrt(a_j1**2 - a_i**2)\n         \
+    \           integral += 0.5 * (integrand_j + integrand_j1) * da\n            \n\
+    \            refractivity[i] = integral / np.pi\n        \n        # 转换为高度和折射率\n\
+    \        heights = a_sorted - self.earth_radius\n        n = 1.0 + refractivity\
+    \ * 1e-6  # 假设干大气\n        \n        return heights, n\n    \n    def extract_electron_density(self,\
+    \ refractivity_l1: np.ndarray,\n                                refractivity_l2:\
+    \ np.ndarray,\n                                heights: np.ndarray,\n        \
+    \                        f1: float = 1575.42e6,\n                            \
+    \    f2: float = 1227.60e6) -> np.ndarray:\n        \"\"\"\n        从双频折射率提取电子浓度\n\
+    \        \n        Args:\n            refractivity_l1: L1频率折射率\n            refractivity_l2:\
+    \ L2频率折射率  \n            heights: 高度 [km]\n            f1: L1频率 [Hz]\n       \
+    \     f2: L2频率 [Hz]\n            \n        Returns:\n            np.ndarray: 电子浓度\
+    \ [m^-3]\n        \"\"\"\n        # 电离层常数\n        K = 40.3  # [m^3/s^2]\n   \
+    \     \n        # 电离层折射率差\n        delta_n = refractivity_l2 - refractivity_l1\n\
+    \        \n        # 电子浓度\n        ne = -delta_n * f1**2 * f2**2 / (K * (f1**2\
+    \ - f2**2)) * 1e6\n        \n        return np.maximum(ne, 0)  # 确保非负值\n    \n\
+    \    def quality_control_ro(self, profile: ROProfile) -> ROProfile:\n        \"\
+    \"\"\n        无线电掩星数据质量控制\n        \n        Args:\n            profile: 掩星廓线数据\n\
+    \            \n        Returns:\n            ROProfile: 质控后的廓线数据\n        \"\"\
+    \"\n        # 高度范围检查\n        valid_height = (profile.heights >= 0) & (profile.heights\
+    \ <= 100)\n        \n        # 信噪比检查\n        valid_snr = profile.snr > 100  #\
+    \ V/V\n        \n        # 弯曲角合理性检查\n        valid_bending = (profile.bending_angles\
+    \ > 0) & (profile.bending_angles < 0.1)  # 弧度\n        \n        # 组合质量标记\n  \
+    \      valid_mask = valid_height & valid_snr & valid_bending\n        \n     \
+    \   # 过滤数据\n        filtered_profile = ROProfile(\n            timestamp=profile.timestamp,\n\
+    \            satellite_name=profile.satellite_name,\n            occultation_id=profile.occultation_id,\n\
+    \            lat=profile.lat,\n            lon=profile.lon,\n            heights=profile.heights[valid_mask],\n\
+    \            bending_angles=profile.bending_angles[valid_mask],\n            impact_params=profile.impact_params[valid_mask],\n\
+    \            snr=profile.snr[valid_mask],\n            quality_flags=profile.quality_flags[valid_mask]\n\
+    \        )\n        \n        return filtered_profile\n```"
+  pattern: null
+  priority: 7
+- condition: main_rule_3_6
+  examples: []
+  guideline: "**1. 经验模型实现**\n\n```python\n\"\"\"\n电离层经验模型实现\n\"\"\"\n\nimport numpy\
+    \ as np\nfrom typing import Optional, Dict, List\nfrom datetime import datetime\n\
+    import math\n\n\nclass IRI2020Model:\n    \"\"\"IRI2020国际参考电离层模型（简化版本）\"\"\"\n\
+    \    \n    def __init__(self):\n        self.name = \"IRI2020\"\n        self.version\
+    \ = \"2020\"\n    \n    def electron_density_profile(self, lat: float, lon: float,\
+    \ \n                                dt: datetime, heights: np.ndarray,\n     \
+    \                           solar_activity: Optional[Dict] = None) -> np.ndarray:\n\
+    \        \"\"\"\n        计算电子浓度廓线\n        \n        Args:\n            lat: 纬度\
+    \ [度]\n            lon: 经度 [度]\n            dt: UTC时间\n            heights: 高度数组\
+    \ [km]\n            solar_activity: 太阳活动参数\n            \n        Returns:\n \
+    \           np.ndarray: 电子浓度 [m^-3]\n        \"\"\"\n        if solar_activity\
+    \ is None:\n            f107 = 150.0  # 默认F10.7值\n            ap = 15.0     #\
+    \ 默认Ap指数\n        else:\n            f107 = solar_activity.get('f107', 150.0)\n\
+    \            ap = solar_activity.get('ap', 15.0)\n        \n        # 太阳天顶角\n\
+    \        sza = CoordinateSystem.solar_zenith_angle(lat, lon, dt)\n        \n \
+    \       # Chapman函数参数\n        nm_f2 = self._calculate_nm_f2(lat, dt, f107)\n\
+    \        hm_f2 = self._calculate_hm_f2(lat, dt, f107)\n        b0 = self._calculate_b0(lat,\
+    \ dt)\n        \n        # 电子浓度廓线\n        ne = np.zeros_like(heights)\n     \
+    \   \n        for i, h in enumerate(heights):\n            if h <= hm_f2:\n  \
+    \              # F2层以下：抛物线\n                ne[i] = nm_f2 * (1 - ((hm_f2 - h)\
+    \ / b0)**2)\n            else:\n                # F2层以上：指数衰减\n               \
+    \ scale_height = 100.0  # km\n                ne[i] = nm_f2 * np.exp(-(h - hm_f2)\
+    \ / scale_height)\n        \n        # 太阳天顶角修正\n        sza_factor = max(0.1,\
+    \ np.cos(np.radians(sza))**0.5)\n        ne *= sza_factor\n        \n        return\
+    \ np.maximum(ne, 0)\n    \n    def _calculate_nm_f2(self, lat: float, dt: datetime,\
+    \ f107: float) -> float:\n        \"\"\"计算F2层峰值电子浓度\"\"\"\n        # 简化的纬度和太阳活动依赖\n\
+    \        lat_factor = 1.0 - 0.3 * (abs(lat) / 90.0)**2\n        solar_factor =\
+    \ (f107 / 150.0)**0.5\n        base_nm = 5e11  # m^-3\n        \n        return\
+    \ base_nm * lat_factor * solar_factor\n    \n    def _calculate_hm_f2(self, lat:\
+    \ float, dt: datetime, f107: float) -> float:\n        \"\"\"计算F2层峰值高度\"\"\"\n\
+    \        # 简化的纬度依赖\n        base_hm = 300.0  # km\n        lat_correction = -50.0\
+    \ * (abs(lat) / 90.0)**2\n        solar_correction = 20.0 * (f107 - 150.0) / 150.0\n\
+    \        \n        return base_hm + lat_correction + solar_correction\n    \n\
+    \    def _calculate_b0(self, lat: float, dt: datetime) -> float:\n        \"\"\
+    \"计算厚度参数\"\"\"\n        return 100.0  # km，简化固定值\n\n\nclass NeQuickModel:\n  \
+    \  \"\"\"NeQuick电离层模型\"\"\"\n    \n    def __init__(self):\n        self.name\
+    \ = \"NeQuick\"\n        self.version = \"G\"\n    \n    def total_electron_content(self,\
+    \ lat1: float, lon1: float,\n                              lat2: float, lon2:\
+    \ float,\n                              dt: datetime, solar_activity: Dict) ->\
+    \ float:\n        \"\"\"\n        计算路径积分TEC\n        \n        Args:\n       \
+    \     lat1, lon1: 起点坐标 [度]\n            lat2, lon2: 终点坐标 [度]\n            dt:\
+    \ UTC时间\n            solar_activity: 太阳活动参数\n            \n        Returns:\n\
+    \            float: TEC [TECU]\n        \"\"\"\n        # 路径积分点\n        n_points\
+    \ = 100\n        lats = np.linspace(lat1, lat2, n_points)\n        lons = np.linspace(lon1,\
+    \ lon2, n_points)\n        \n        # 高度积分\n        heights = np.linspace(80,\
+    \ 2000, 100)  # km\n        \n        tec = 0.0\n        path_length = self._calculate_path_length(lat1,\
+    \ lon1, lat2, lon2) / n_points\n        \n        for lat, lon in zip(lats, lons):\n\
+    \            # 计算该点的电子浓度廓线\n            ne_profile = self._electron_density_profile(lat,\
+    \ lon, dt, heights, solar_activity)\n            \n            # 高度积分\n      \
+    \      column_density = np.trapz(ne_profile, heights * 1000)  # 转换为m\n       \
+    \     \n            # 路径积分\n            tec += column_density * path_length *\
+    \ 1000  # 转换为m\n        \n        return tec / 1e16  # 转换为TECU\n    \n    def\
+    \ _calculate_path_length(self, lat1: float, lon1: float, \n                  \
+    \            lat2: float, lon2: float) -> float:\n        \"\"\"计算球面距离\"\"\"\n\
+    \        # Haversine公式\n        dlat = math.radians(lat2 - lat1)\n        dlon\
+    \ = math.radians(lon2 - lon1)\n        \n        a = (math.sin(dlat/2)**2 + \n\
+    \             math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * \n\
+    \             math.sin(dlon/2)**2)\n        \n        c = 2 * math.atan2(math.sqrt(a),\
+    \ math.sqrt(1-a))\n        \n        return 6371.0 * c  # km\n    \n    def _electron_density_profile(self,\
+    \ lat: float, lon: float,\n                                 dt: datetime, heights:\
+    \ np.ndarray,\n                                 solar_activity: Dict) -> np.ndarray:\n\
+    \        \"\"\"NeQuick电子浓度廓线计算\"\"\"\n        # 这里应该实现完整的NeQuick算法\n        #\
+    \ 简化版本，使用类似IRI的方法\n        iri_model = IRI2020Model()\n        return iri_model.electron_density_profile(lat,\
+    \ lon, dt, heights, solar_activity)"
+  pattern: null
+  priority: 7
+- condition: main_rule_1_7
+  examples: []
+  guideline: "**模型验证工具**\n\nclass ModelValidation:\n    \"\"\"模型验证工具\"\"\"\n    \n\
+    \    @staticmethod\n    def calculate_statistics(observed: np.ndarray, modeled:\
+    \ np.ndarray) -> Dict[str, float]:\n        \"\"\"\n        计算统计指标\n        \n\
+    \        Args:\n            observed: 观测值\n            modeled: 模拟值\n        \
+    \    \n        Returns:\n            Dict[str, float]: 统计指标\n        \"\"\"\n\
+    \        # 移除无效值\n        valid_mask = ~(np.isnan(observed) | np.isnan(modeled))\n\
+    \        obs_clean = observed[valid_mask]\n        mod_clean = modeled[valid_mask]\n\
+    \        \n        if len(obs_clean) == 0:\n            return {'n': 0}\n    \
+    \    \n        # 计算统计量\n        bias = np.mean(mod_clean - obs_clean)\n      \
+    \  rmse = np.sqrt(np.mean((mod_clean - obs_clean)**2))\n        mae = np.mean(np.abs(mod_clean\
+    \ - obs_clean))\n        correlation = np.corrcoef(obs_clean, mod_clean)[0, 1]\n\
+    \        \n        # 相对误差\n        rel_bias = bias / np.mean(obs_clean) * 100\n\
+    \        rel_rmse = rmse / np.mean(obs_clean) * 100\n        \n        return\
+    \ {\n            'n': len(obs_clean),\n            'bias': bias,\n           \
+    \ 'rmse': rmse,\n            'mae': mae,\n            'correlation': correlation,\n\
+    \            'rel_bias_percent': rel_bias,\n            'rel_rmse_percent': rel_rmse\n\
+    \        }\n    \n    @staticmethod\n    def seasonal_validation(observations:\
+    \ List[TECObservation],\n                          model: Union[IRI2020Model,\
+    \ NeQuickModel]) -> Dict[str, Dict]:\n        \"\"\"\n        季节性验证分析\n      \
+    \  \n        Args:\n            observations: 观测数据列表\n            model: 电离层模型\n\
+    \            \n        Returns:\n            Dict[str, Dict]: 各季节的验证结果\n     \
+    \   \"\"\"\n        seasons = {\n            'spring': [3, 4, 5],\n          \
+    \  'summer': [6, 7, 8], \n            'autumn': [9, 10, 11],\n            'winter':\
+    \ [12, 1, 2]\n        }\n        \n        results = {}\n        \n        for\
+    \ season_name, months in seasons.items():\n            # 筛选季节数据\n            season_obs\
+    \ = [obs for obs in observations \n                         if obs.timestamp.month\
+    \ in months]\n            \n            if len(season_obs) == 0:\n           \
+    \     continue\n            \n            # 计算模型值\n            observed_tec =\
+    \ np.array([obs.stec for obs in season_obs])\n            modeled_tec = np.zeros_like(observed_tec)\n\
+    \            \n            for i, obs in enumerate(season_obs):\n            \
+    \    # 这里需要根据具体模型调用相应方法\n                if isinstance(model, IRI2020Model):\n\
+    \                    # 简化：直接使用TEC估算\n                    heights = np.linspace(80,\
+    \ 1000, 100)\n                    ne_profile = model.electron_density_profile(\n\
+    \                        obs.pierce_point_lat, obs.pierce_point_lon,\n       \
+    \                 obs.timestamp, heights\n                    )\n            \
+    \        modeled_tec[i] = np.trapz(ne_profile, heights * 1000) / 1e16\n      \
+    \      \n            # 计算统计指标\n            stats = ModelValidation.calculate_statistics(observed_tec,\
+    \ modeled_tec)\n            results[season_name] = stats\n        \n        return\
+    \ results\n```"
+  pattern: null
+  priority: 9
+- condition: main_rule_1_8
+  examples: []
+  guideline: "**✅ 推荐：考虑太阳活动**\n\nsolar_params = {'f107': 150.0, 'ap': 15.0}\nne =\
+    \ model.electron_density(lat, lon, dt, height, solar_params)\n```\n\n---\n\n**适用场景**:\
+    \ 电离层物理研究、GNSS应用、空间天气预报、无线电传播  \n**质量等级**: #peer-review-ready #scientific-standard\
+    \ #international  \n**相关规则**: DOMAIN-ATM-001, PROG-PY-SCI-001, DATA-001"
+  pattern: null
+  priority: 9
+success_rate: 0.0
+tags:
+- ionosphere
+- tec
+- radio-occultation
+- gnss
+- space-physics
+- modeling
+task_types:
+- software_design
+updated_at: '2025-06-24T11:18:27.926080+00:00'
+usage_count: 0
+validation:
+  auto_fix: false
+  code_style: null
+  custom_config: {}
+  custom_validators: []
+  documentation: null
+  severity: warning
+  testing: null
+  timeout: 30
+  tools: []
+version: 1.0.0

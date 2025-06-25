@@ -227,6 +227,12 @@ class MCPHttpServer:
                 result = await self._read_resource(params)
             elif method == "initialize":
                 result = await self._initialize(params)
+            elif method == "validate_content":
+                result = await self._validate_content(**params)
+            elif method == "import_resource":
+                result = await self._import_resource(**params)
+            elif method == "get_statistics":
+                result = await self._get_statistics(**params)
             else:
                 return self._error_response(-32601, f"Method not found: {method}", request_id)
             
@@ -258,84 +264,182 @@ class MCPHttpServer:
         }
     
     async def _list_tools(self) -> Dict[str, Any]:
-        """列出可用工具"""
+        """列出可用工具（详细说明每个工具的功能、参数、注意事项、用法示例）"""
         tools = [
             {
                 "name": "search_rules",
-                "description": "搜索适用的规则",
+                "description": (
+                    "搜索适用的规则。\n"
+                    "【功能】根据关键词、语言、领域、标签等条件检索规则库，支持多条件组合过滤。\n"
+                    "【参数说明】所有参数均为可选，支持逗号分隔多值。\n"
+                    "【注意事项】limit建议不超过50。"
+                ),
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "query": {"type": "string", "description": "搜索关键词"},
-                        "languages": {"type": "string", "description": "编程语言列表（逗号分隔）"},
-                        "domains": {"type": "string", "description": "应用领域列表（逗号分隔）"},
-                        "tags": {"type": "string", "description": "标签列表（逗号分隔）"},
-                        "content_types": {"type": "string", "description": "内容类型列表（逗号分隔）"},
-                        "rule_types": {"type": "string", "description": "规则类型列表（逗号分隔）"},
-                        "limit": {"type": "integer", "description": "返回结果数量限制", "default": 10}
-                    }
+                        "query": {"type": "string", "description": "搜索关键词。"},
+                        "languages": {"type": "string", "description": "编程语言列表（逗号分隔），如 python,cpp。"},
+                        "domains": {"type": "string", "description": "应用领域列表（逗号分隔），如 meteorology,ionosphere。"},
+                        "tags": {"type": "string", "description": "标签列表（逗号分隔），如 style,performance。"},
+                        "content_types": {"type": "string", "description": "内容类型列表（逗号分隔），如 code,documentation。"},
+                        "rule_types": {"type": "string", "description": "规则类型列表（逗号分隔），如 style,content。"},
+                        "limit": {"type": "integer", "description": "返回结果数量限制，默认10，最大50。", "default": 10}
+                    },
+                    "examples": [
+                        {"query": "python 命名规范", "languages": "python", "limit": 5}
+                    ]
                 }
             },
             {
                 "name": "validate_content",
-                "description": "验证内容是否符合规则",
+                "description": (
+                    "校验内容合规性。\n"
+                    "【功能】对给定内容进行规则合规性校验，返回详细问题和建议。\n"
+                    "参数 output_mode 控制输出内容，支持：result_only, result_with_prompt, result_with_rules, result_with_template, full。"
+                ),
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "content": {"type": "string", "description": "要验证的内容"},
-                        "file_path": {"type": "string", "description": "文件路径（可选）"},
-                        "languages": {"type": "string", "description": "编程语言（逗号分隔）"},
-                        "domains": {"type": "string", "description": "应用领域（逗号分隔）"},
-                        "content_types": {"type": "string", "description": "内容类型（逗号分隔）"},
-                        "project_context": {"type": "string", "description": "项目上下文信息"}
+                        "content": {"type": "string", "description": "待校验内容（必填）。"},
+                        "file_path": {"type": "string", "description": "文件路径，仅用于推断语言类型（可选）。"},
+                        "languages": {"type": "string", "description": "语言，如python,markdown（可选）。"},
+                        "content_types": {"type": "string", "description": "内容类型，如code,documentation（可选）。"},
+                        "domains": {"type": "string", "description": "领域（可选）。"},
+                        "output_mode": {
+                            "type": "string",
+                            "description": (
+                                "输出模式，支持以下枚举值：\n"
+                                "- result_only：仅返回校验结果（success, passed, problems）\n"
+                                "- result_with_prompt：返回校验结果和 prompt\n"
+                                "- result_with_rules：返回校验结果和规则详情\n"
+                                "- result_with_template：返回校验结果和模板信息\n"
+                                "- full：返回全部信息（校验结果、prompt、规则、模板信息）\n"
+                                "默认值为 result_only。"
+                            ),
+                            "enum": ["result_only", "result_with_prompt", "result_with_rules", "result_with_template", "full"],
+                            "default": "result_only"
+                        }
                     },
-                    "required": ["content"]
+                    "required": ["content"],
+                    "examples": [
+                        {"content": "def foo(): pass", "languages": "python", "output_mode": "result_only"},
+                        {"content": "def foo(): pass", "languages": "python", "output_mode": "full"}
+                    ]
                 }
             },
             {
                 "name": "enhance_prompt",
-                "description": "基于规则增强提示",
+                "description": (
+                    "基于规则增强提示。\n"
+                    "【功能】根据上下文和规则库自动补全、优化LLM提示词。\n"
+                    "【参数说明】base_prompt为必填，其他参数用于筛选相关规则。\n"
+                    "【注意事项】max_rules建议不超过10。"
+                ),
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "base_prompt": {"type": "string", "description": "基础提示"},
-                        "languages": {"type": "string", "description": "编程语言列表"},
-                        "domains": {"type": "string", "description": "应用领域列表"},
-                        "tags": {"type": "string", "description": "标签列表"},
-                        "max_rules": {"type": "integer", "description": "最大规则数量", "default": 5}
+                        "base_prompt": {"type": "string", "description": "基础提示（必填）。"},
+                        "languages": {"type": "string", "description": "编程语言列表（逗号分隔，可选）。"},
+                        "domains": {"type": "string", "description": "应用领域列表（逗号分隔，可选）。"},
+                        "tags": {"type": "string", "description": "标签列表（逗号分隔，可选）。"},
+                        "max_rules": {"type": "integer", "description": "最大包含规则数量，默认5，建议不超过10。", "default": 5}
                     },
-                    "required": ["base_prompt"]
+                    "required": ["base_prompt"],
+                    "examples": [
+                        {"base_prompt": "请优化以下Python函数命名风格...", "languages": "python"}
+                    ]
                 }
             },
             {
                 "name": "get_statistics",
-                "description": "获取规则库统计信息",
+                "description": (
+                    "获取规则与模板的统计信息。\n"
+                    "参数 resource_type 控制统计对象，支持：rules, templates, all。\n"
+                    "兼容原有过滤参数，模板统计时部分字段可忽略。"
+                ),
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "languages": {"type": "string", "description": "过滤的编程语言（逗号分隔）"},
-                        "domains": {"type": "string", "description": "过滤的应用领域（逗号分隔）"},
-                        "rule_types": {"type": "string", "description": "过滤的规则类型（逗号分隔）"},
-                        "tags": {"type": "string", "description": "过滤的标签（逗号分隔）"}
-                    }
+                        "resource_type": {
+                            "type": "string",
+                            "description": "统计对象类型，支持：rules（规则）、templates（模板）、all（全部）。默认 rules。",
+                            "enum": ["rules", "templates", "all"],
+                            "default": "rules"
+                        },
+                        "languages": {"type": "string", "description": "语言过滤（可选）。"},
+                        "domains": {"type": "string", "description": "领域过滤（可选）。"},
+                        "rule_types": {"type": "string", "description": "规则类型过滤（可选，仅规则）。"},
+                        "tags": {"type": "string", "description": "标签过滤（可选）。"}
+                    },
+                    "examples": [
+                        {"resource_type": "rules", "languages": "python"},
+                        {"resource_type": "templates", "languages": "python"},
+                        {"resource_type": "all"}
+                    ]
                 }
             },
             {
-                "name": "import_rules",
-                "description": "导入规则（支持多种格式）",
+                "name": "import_resource",
+                "description": (
+                    "导入规则或模板的实现（仅支持 content 参数）。\n"
+                    "【功能】将规则或模板内容导入到规则库，支持Markdown、YAML、JSON等格式。\n"
+                    "【本地CLI/MCP】可通过 file_path（支持绝对路径）或 content 上传规则或模板。\n"
+                    "【远程HTTP/MCP/JSON-RPC】仅支持 content 字段上传规则或模板内容，file_path 参数会被忽略。\n"
+                    "【注意】规则正文内容必须完整上传，不能有截断或格式损失。推荐优先使用 content 字段以保证兼容性。"
+                ),
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "content": {"type": "string", "description": "规则内容（如果提供了content，则忽略file_path）"},
-                        "file_path": {"type": "string", "description": "规则文件路径"},
-                        "format": {"type": "string", "description": "格式类型", "enum": ["auto", "markdown", "yaml", "json"], "default": "auto"},
-                        "validate": {"type": "boolean", "description": "是否验证规则", "default": True},
-                        "merge": {"type": "boolean", "description": "是否合并重复规则", "default": False}
-                    }
+                        "content": {
+                            "type": "string",
+                            "description": (
+                                "规则或模板内容（完整文本，推荐）。\n"
+                                "【远程HTTP/MCP/JSON-RPC】必须使用此字段上传规则或模板内容。\n"
+                                "【本地CLI/MCP】也可用此字段。"
+                            )
+                        },
+                        "file_path": {
+                            "type": "string",
+                            "description": (
+                                "规则或模板文件路径（仅本地CLI/MCP可用，支持绝对路径和相对路径）。\n"
+                                "【远程HTTP/MCP/JSON-RPC】此参数会被忽略，仅为兼容占位。"
+                            )
+                        },
+                        "format": {
+                            "type": "string",
+                            "description": (
+                                "规则或模板格式类型。可选：auto（自动识别）、markdown、yaml、json。"
+                            ),
+                            "enum": ["auto", "markdown", "yaml", "json"],
+                            "default": "auto"
+                        },
+                        "validate": {
+                            "type": "boolean",
+                            "description": "导入后是否校验规则或模板，默认True。",
+                            "default": True
+                        },
+                        "merge": {
+                            "type": "boolean",
+                            "description": "是否合并重复规则或模板，默认False。",
+                            "default": False
+                        },
+                        "type": {
+                            "type": "string",
+                            "description": "资源类型，可选：rules（规则）、templates（模板），默认auto（自动识别）。",
+                            "enum": ["rules", "templates", "auto"],
+                            "default": "auto"
+                        }
+                    },
+                    "required": ["content"],
+                    "examples": [
+                        {"content": "# 规则内容...", "format": "markdown", "type": "rules"},
+                        {"file_path": "/absolute/path/to/rule.yaml", "format": "yaml", "type": "rules"},
+                        {"content": "# 模板内容...", "format": "markdown", "type": "templates"},
+                        {"file_path": "/absolute/path/to/template.yaml", "format": "yaml", "type": "templates"}
+                    ]
                 }
             }
         ]
-        
         return {"tools": tools}
     
     async def _call_tool(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -351,16 +455,17 @@ class MCPHttpServer:
             result = await self._enhance_prompt(**arguments)
         elif tool_name == "get_statistics":
             result = await self._get_statistics(**arguments)
-        elif tool_name == "import_rules":
-            result = await self._import_rules(**arguments)
+        elif tool_name == "import_resource":
+            result = await self._import_resource(**arguments)
         else:
             raise ValueError(f"Unknown tool: {tool_name}")
         
+        # 保证text字段始终为字符串
         return {
             "content": [
                 {
                     "type": "text",
-                    "text": result
+                    "text": result if isinstance(result, str) else str(result)
                 }
             ]
         }
@@ -454,48 +559,31 @@ class MCPHttpServer:
             logger.error(f"搜索规则时发生错误: {e}")
             return f"❌ 搜索失败: {str(e)}"
     
-    async def _validate_content(self, content: str, file_path: str = "", 
-                              languages: str = "", domains: str = "", 
-                              content_types: str = "", project_context: str = "") -> str:
-        """验证内容的实现"""
-        try:
-            # 构建MCP上下文
-            context = MCPContext(
-                user_query="Content validation request",
-                file_path=file_path,
-                languages=self._parse_list_param(languages) or self._infer_languages_from_path(file_path),
-                domains=self._parse_list_param(domains),
-                content_types=self._parse_list_param(content_types) or self._infer_content_types(content, file_path),
-                project_context=project_context
-            )
-            
-            # 执行验证
-            validation_result = await self.rule_engine.validate_content(content, context)
-            
-            # 格式化验证结果
-            if validation_result.is_valid:
-                result_text = f"✅ **验证通过**\n\n"
-            else:
-                result_text = f"❌ **验证失败** ({len(validation_result.violations)} 个问题)\n\n"
-            
-            # 添加详细信息
-            if validation_result.violations:
-                result_text += "**发现的问题**:\n"
-                for violation in validation_result.violations:
-                    result_text += f"- {violation.severity.value}: {violation.message}\n"
-                    if violation.suggestion:
-                        result_text += f"  💡 建议: {violation.suggestion}\n"
-            
-            if validation_result.suggestions:
-                result_text += "\n**改进建议**:\n"
-                for suggestion in validation_result.suggestions:
-                    result_text += f"- {suggestion}\n"
-            
-            return result_text
-            
-        except Exception as e:
-            logger.error(f"验证内容时发生错误: {e}")
-            return f"❌ 验证失败: {str(e)}"
+    async def _validate_content(self, content: str, file_path: str = "", languages: str = "", content_types: str = "", domains: str = "", output_mode: str = "result_only") -> dict:
+        """
+        校验内容合规性，支持枚举型输出模式。
+        Args:
+            content (str): 待校验内容。
+            file_path (str, optional): 文件路径。
+            languages (str, optional): 语言。
+            content_types (str, optional): 内容类型。
+            domains (str, optional): 领域。
+            output_mode (str): 输出模式，支持：result_only, result_with_prompt, result_with_rules, result_with_template, full。
+        Returns:
+            dict: 校验结果及所需附加信息。
+        """
+        from .engine import OutputMode
+        from .models import MCPContext
+        
+        # 执行验证
+        return await self.rule_engine.validate_content(
+            content=content,
+            file_path=file_path,
+            languages=languages,
+            content_types=content_types,
+            domains=domains,
+            output_mode=OutputMode(output_mode)
+        )
     
     async def _enhance_prompt(self, base_prompt: str, languages: str = "", 
                             domains: str = "", tags: str = "", max_rules: int = 5) -> str:
@@ -525,181 +613,124 @@ class MCPHttpServer:
             logger.error(f"增强提示时发生错误: {e}")
             return f"❌ 增强失败: {str(e)}"
     
-    async def _get_statistics(self, languages: str = "", domains: str = "", 
-                           rule_types: str = "", tags: str = "") -> str:
-        """获取统计信息的实现（支持过滤参数）"""
-        try:
-            # 构建过滤条件
-            filter_conditions = {}
-            if languages:
-                filter_conditions['languages'] = self._parse_list_param(languages)
-            if domains:
-                filter_conditions['domains'] = self._parse_list_param(domains)
-            if rule_types:
-                filter_conditions['rule_types'] = [RuleType(rt.strip()) for rt in rule_types.split(',') if rt.strip()]
-            if tags:
-                filter_conditions['tags'] = self._parse_list_param(tags)
-            
-            # 获取统计信息
-            stats = self.rule_engine.database.get_database_stats(**filter_conditions)
-            
-            # 构建标题
-            if filter_conditions:
-                filter_desc = []
-                if filter_conditions.get('languages'):
-                    filter_desc.append(f"语言: {', '.join(filter_conditions['languages'])}")
-                if filter_conditions.get('domains'):
-                    filter_desc.append(f"领域: {', '.join(filter_conditions['domains'])}")
-                if filter_conditions.get('rule_types'):
-                    filter_desc.append(f"类型: {', '.join([rt.value for rt in filter_conditions['rule_types']])}")
-                if filter_conditions.get('tags'):
-                    filter_desc.append(f"标签: {', '.join(filter_conditions['tags'])}")
-                
-                title = f"📊 **CursorRules-MCP 规则库统计 (过滤条件: {'; '.join(filter_desc)})**"
-            else:
-                title = "📊 **CursorRules-MCP 规则库统计**"
-            
-            result_text = f"""
-{title}
+    async def _get_statistics(self, resource_type: str = "rules", languages: str = "", domains: str = "", rule_types: str = "", tags: str = "") -> dict:
+        """
+        获取规则与模板的统计信息。
+        Args:
+            resource_type (str): 统计对象类型，rules/templates/all。
+            languages, domains, rule_types, tags: 过滤参数。
+        Returns:
+            dict: 统计结果，结构如 {resource_type, rules_stats, templates_stats}
+        """
+        stats = {}
+        if resource_type in ("rules", "all"):
+            stats["rules_stats"] = self.rule_engine.get_rule_statistics(languages, domains, rule_types, tags)
+        if resource_type in ("templates", "all"):
+            stats["templates_stats"] = self.rule_engine.get_template_statistics(languages, domains, tags)
+        stats["resource_type"] = resource_type
+        return stats
 
-**规则统计**:
-- 总规则数: {stats['total_rules']}
-- 活跃规则数: {stats['active_rules']}
-- 版本总数: {stats['total_versions']}
-
-**分类统计**:
-- 支持语言: {stats['languages']} 种
-- 应用领域: {stats['domains']} 个
-- 规则类型: {stats['rule_types']} 种
-- 标签总数: {stats['total_tags']} 个
-
-**按类型分布**:
-"""
-            # 添加详细分布信息
-            for rule_type, count in stats.get('rules_by_type', {}).items():
-                if count > 0:
-                    result_text += f"- {rule_type}: {count} 条\n"
-            
-            result_text += f"""
-**按语言分布**:
-"""
-            for lang, count in stats.get('rules_by_language', {}).items():
-                if count > 0:
-                    result_text += f"- {lang}: {count} 条\n"
-            
-            result_text += f"""
-**按领域分布**:
-"""
-            for domain, count in stats.get('rules_by_domain', {}).items():
-                if count > 0:
-                    result_text += f"- {domain}: {count} 条\n"
-            
-            # 添加版本分布
-            if 'version_distribution' in stats and stats['version_distribution']:
-                result_text += f"""
-**版本分布**:
-"""
-                for rule_id, version_count in list(stats['version_distribution'].items())[:5]:
-                    result_text += f"- {rule_id}: {version_count} 个版本\n"
-                
-                if len(stats['version_distribution']) > 5:
-                    result_text += f"- ... 还有 {len(stats['version_distribution']) - 5} 个规则\n"
-            
-            # 添加使用情况统计
-            if 'usage_stats' in stats:
-                result_text += f"""
-**使用情况**:
-- 总使用次数: {stats['usage_stats'].get('total_usage', 0)}
-- 平均成功率: {stats['usage_stats'].get('average_success_rate', 0):.1%}
-- 最常用规则: {stats['usage_stats'].get('most_used_rule', '无')}
-"""
-            
-            result_text += f"""
-**HTTP服务状态**:
-- 活跃连接: {len(self._active_connections)}
-- 服务器运行时间: {datetime.now().isoformat()}
-"""
-            
-            return result_text
-            
-        except Exception as e:
-            logger.error(f"获取统计信息时发生错误: {e}")
-            return f"❌ 获取统计信息失败: {str(e)}"
-
-    async def _import_rules(self, content: str = "", file_path: str = "",
+    async def _import_resource(self, content: str = "", file_path: str = "",
                            format: str = "auto", validate: bool = True,
-                           merge: bool = False) -> str:
-        """导入规则的实现"""
+                           merge: bool = False, type: str = None) -> str:
+        """导入规则或模板的实现（仅支持 content 参数）"""
         try:
-            # 导入规则导入器
-            from .rule_import import UnifiedRuleImporter
-            
-            # 创建导入器
-            importer = UnifiedRuleImporter(
-                output_dir="data/rules/imported",
-                validate=validate,
-                merge=merge
-            )
-            
-            # 执行导入
-            if content:
-                # 直接从内容导入
-                if format == "auto":
-                    # 尝试自动检测格式
-                    if content.startswith('---'):
-                        format = "markdown"
-                    elif content.strip().startswith('{'):
-                        format = "json"
-                    else:
-                        format = "yaml"
-                
-                result = importer.import_from_content(content, format)
+            import tempfile
+            import os
+            if not content:
+                return {
+                    "success": False,
+                    "message": "❌ 必须通过 content 上传资源内容，不支持 file_path 参数",
+                    "imported": 0,
+                    "resource_type": type or "auto"
+                }
+            # 自动识别类型
+            resource_type = type or None
+            if not resource_type:
+                if format in ["markdown"] or content.startswith('---') or file_path.endswith('.md'):
+                    resource_type = 'templates'
+                elif format in ["yaml", "yml"] or file_path.endswith('.yaml') or file_path.endswith('.yml'):
+                    resource_type = 'templates'
+                else:
+                    resource_type = 'rules'
+            if resource_type == 'templates':
+                # 导入模板
+                from .engine import RuleEngine
+                engine = self.rule_engine
+                # 创建临时文件
+                ext = '.md' if format == 'markdown' else '.yaml'
+                with tempfile.NamedTemporaryFile(mode='w', suffix=ext, delete=False, encoding='utf-8') as temp_file:
+                    temp_file.write(content)
+                    temp_path = temp_file.name
+                try:
+                    engine.load_prompt_templates([temp_path], mode='append')
+                    return {
+                        "success": True,
+                        "message": f"✅ 成功导入模板文件 {file_path or temp_path}",
+                        "imported": 1,
+                        "resource_type": "templates"
+                    }
+                finally:
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
             else:
-                # 从文件路径导入
-                if not file_path:
-                    return "❌ 必须提供 content 或 file_path 之一"
-                
-                result = importer.import_from_file(file_path, format)
-            
-            # 格式化结果
-            if result['success']:
-                result_text = f"""
-✅ **规则导入成功**
-
-**导入统计**:
-- 处理文件: {result.get('processed_files', 1)}
-- 导入规则: {result.get('imported_rules', 0)}
-- 跳过规则: {result.get('skipped_rules', 0)}
-- 格式: {result.get('detected_format', format)}
-
-"""
-                if result.get('imported_rule_ids'):
-                    result_text += "**已导入的规则ID**:\n"
-                    for rule_id in result['imported_rule_ids']:
-                        result_text += f"- {rule_id}\n"
-                
-                if result.get('warnings'):
-                    result_text += "\n**警告**:\n"
-                    for warning in result['warnings']:
-                        result_text += f"⚠️ {warning}\n"
-            else:
-                result_text = f"""
-❌ **规则导入失败**
-
-**错误信息**: {result.get('error', '未知错误')}
-
-"""
-                if result.get('details'):
-                    result_text += f"**详细信息**: {result['details']}\n"
-            
-            # 重新加载规则引擎
-            await self.rule_engine.reload()
-            
-            return result_text
-            
+                # 导入规则
+                from .rule_import import UnifiedRuleImporter
+                ext = '.yaml' if format in ['yaml', 'yml'] else '.md' if format == 'markdown' else '.json'
+                with tempfile.NamedTemporaryFile(mode='w', suffix=ext, delete=False, encoding='utf-8') as temp_file:
+                    temp_file.write(content)
+                    temp_path = temp_file.name
+                try:
+                    importer = UnifiedRuleImporter(save_to_database=True)
+                    rules = await importer.import_rules_async([temp_path], merge=merge)
+                    await self.rule_engine.reload()
+                    
+                    # 检查导入日志中的错误
+                    import_log = importer.get_import_summary()
+                    if import_log['failed_imports'] > 0:
+                        error_logs = [log for log in import_log['import_log'] if log['status'] == 'error']
+                        error_messages = []
+                        for log in error_logs:
+                            if "检测到重复 rule_id" in log['message']:
+                                # 对于重复 ID 的错误，提供更友好的提示
+                                rule_id = log['message'].split("rule_id:")[1].split(",")[0].strip()
+                                error_messages.append(f"规则 {rule_id} 已存在。如果要覆盖现有规则，请设置 merge=true。")
+                            else:
+                                error_messages.append(log['message'])
+                        
+                        return {
+                            "success": False,
+                            "message": "❌ 导入规则时出现问题：\n" + "\n".join(error_messages),
+                            "imported": len(rules),
+                            "resource_type": "rules",
+                            "details": {
+                                "total_files": import_log['total_files'],
+                                "successful_imports": import_log['successful_imports'],
+                                "failed_imports": import_log['failed_imports']
+                            }
+                        }
+                    
+                    return {
+                        "success": True,
+                        "message": f"✅ 成功导入 {len(rules)} 条规则到数据库",
+                        "imported": len(rules),
+                        "resource_type": "rules",
+                        "details": {
+                            "total_files": import_log['total_files'],
+                            "successful_imports": import_log['successful_imports'],
+                            "failed_imports": import_log['failed_imports']
+                        }
+                    }
+                finally:
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
         except Exception as e:
-            logger.error(f"导入规则时发生错误: {e}")
-            return f"❌ 导入失败: {str(e)}"
+            return {
+                "success": False,
+                "message": f"❌ 导入资源失败: {e}",
+                "imported": 0,
+                "resource_type": type or "auto"
+            }
     
     async def _list_all_rules(self) -> str:
         """列出所有规则"""
