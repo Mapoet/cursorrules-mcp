@@ -16,6 +16,9 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime, timezone
 import logging
+import os
+import requests
+from urllib.parse import urlparse
 
 try:
     import frontmatter
@@ -27,12 +30,28 @@ from .models import (
     CursorRule, RuleType, ContentType, TaskType, ValidationSeverity,
     RuleCondition, RuleApplication, RuleValidation
 )
+from .database import RuleDatabase
 
 logger = logging.getLogger(__name__)
 
+__all__ = ['YamlRuleParser', 'RuleImportError', 'UnifiedRuleImporter']
+
+class RuleImportError(Exception):
+    """规则导入过程中的错误"""
+    pass
 
 class RuleParser(ABC):
     """规则解析器抽象基类"""
+    
+    def __init__(self, db: RuleDatabase):
+        """
+        初始化规则解析器
+        
+        Args:
+            db: 规则数据库实例
+        """
+        self.db = db
+        self.logger = logging.getLogger(__name__)
     
     @abstractmethod
     def can_parse(self, file_path: Path) -> bool:
@@ -47,6 +66,15 @@ class RuleParser(ABC):
 
 class MarkdownRuleParser(RuleParser):
     """Markdown格式规则解析器"""
+    
+    def __init__(self, db: RuleDatabase):
+        """
+        初始化Markdown规则解析器
+        
+        Args:
+            db: 规则数据库实例
+        """
+        super().__init__(db)
     
     def can_parse(self, file_path: Path) -> bool:
         """检查是否为Markdown文件"""
@@ -516,6 +544,15 @@ class MarkdownRuleParser(RuleParser):
 class YamlRuleParser(RuleParser):
     """YAML格式规则解析器"""
     
+    def __init__(self, db: RuleDatabase):
+        """
+        初始化YAML规则解析器
+        
+        Args:
+            db: 规则数据库实例
+        """
+        super().__init__(db)
+        
     def can_parse(self, file_path: Path) -> bool:
         """检查是否为YAML文件"""
         return file_path.suffix.lower() in ['.yaml', '.yml']
@@ -529,19 +566,56 @@ class YamlRuleParser(RuleParser):
             if not data:
                 raise ValueError(f"YAML文件为空: {file_path}")
             
+            # 检查是否包含 [...] 类型的截断标记
+            truncation_markers = [
+                '[... 其余内容 ...]',
+                '[...其余内容...]',
+                '[... 内容省略以保持简洁 ...]',
+                '[...内容省略以保持简洁...]',
+                '[...省略...]',
+                '[省略]',
+                '[...]'
+            ]
+            
+            def check_truncation(text: str) -> bool:
+                if isinstance(text, str):
+                    for marker in truncation_markers:
+                        if marker in text:
+                            return True
+                return False
+            
+            def find_truncation_in_dict(d: dict) -> Optional[str]:
+                for key, value in d.items():
+                    if isinstance(value, str) and check_truncation(value):
+                        return f"在字段 '{key}' 中发现内容截断标记"
+                    elif isinstance(value, list):
+                        for i, item in enumerate(value):
+                            if isinstance(item, dict):
+                                result = find_truncation_in_dict(item)
+                                if result:
+                                    return f"在列表索引 {i} 的 {result}"
+                            elif check_truncation(item):
+                                return f"在列表索引 {i} 中发现内容截断标记"
+                    elif isinstance(value, dict):
+                        result = find_truncation_in_dict(value)
+                        if result:
+                            return f"在嵌套字典的 {result}"
+                return None
+
+            # 检查是否存在截断标记
+            truncation_location = find_truncation_in_dict(data)
+            if truncation_location:
+                raise ValueError(f"发现内容截断 ({truncation_location})。请使用分批导入:\n"
+                                 "1. 设置 append_mode=True\n"
+                                 "2. 分多次导入完整内容\n"
+                                 "3. 最后一次导入时设置 append_mode=False 表示导入完成")
+
             # 支持单个规则和规则列表
             if isinstance(data, dict):
-                # 单个规则
                 rule = self._create_rule_from_yaml(data, file_path)
                 return [rule]
             elif isinstance(data, list):
-                # 规则列表
-                rules = []
-                for item in data:
-                    if isinstance(item, dict):
-                        rule = self._create_rule_from_yaml(item, file_path)
-                        rules.append(rule)
-                return rules
+                return [self._create_rule_from_yaml(item, file_path) for item in data]
             else:
                 raise ValueError(f"无效的YAML格式: {file_path}")
                 
@@ -559,7 +633,7 @@ class YamlRuleParser(RuleParser):
             raise ValueError(f"YAML规则缺少name字段: {file_path}")
         
         # 使用MarkdownRuleParser的转换逻辑
-        markdown_parser = MarkdownRuleParser()
+        markdown_parser = MarkdownRuleParser(self.db)
         
         # 处理规则条件
         if 'rules' not in data and ('guideline' in data or 'condition' in data):
@@ -616,9 +690,173 @@ class YamlRuleParser(RuleParser):
         
         return CursorRule(**data)
 
+    def is_valid_url(self, url: str) -> bool:
+        """
+        检查是否为有效的HTTPS URL
+        """
+        try:
+            result = urlparse(url)
+            return all([
+                result.scheme == 'https',  # 仅允许HTTPS
+                result.netloc,  # 必须有域名
+                any(url.endswith(ext) for ext in ['.yaml', '.yml'])  # 仅允许YAML文件
+            ])
+        except:
+            return False
+
+    def import_content(self, content: str, merge: bool = False, append_mode: bool = False) -> List[CursorRule]:
+        """
+        从YAML内容字符串导入规则
+        
+        Args:
+            content: YAML格式的规则内容
+            merge: 是否合并已存在的规则
+            append_mode: 是否为追加模式，用于分批导入大内容
+            
+        Returns:
+            导入的规则列表
+            
+        Raises:
+            RuleImportError: 导入失败时抛出
+        """
+        try:
+            data = yaml.safe_load(content)
+            
+            if not data:
+                raise RuleImportError("内容为空或格式错误")
+
+            # 检查是否包含 [...] 类型的截断标记
+            truncation_markers = [
+                '[... 其余内容 ...]',
+                '[...其余内容...]',
+                '[... 内容省略以保持简洁 ...]',
+                '[...内容省略以保持简洁...]',
+                '[...省略...]',
+                '[省略]',
+                '[...]'
+            ]
+            
+            def check_truncation(text: str) -> bool:
+                if isinstance(text, str):
+                    for marker in truncation_markers:
+                        if marker in text:
+                            return True
+                return False
+            
+            def find_truncation_in_dict(d: dict) -> Optional[str]:
+                for key, value in d.items():
+                    if isinstance(value, str) and check_truncation(value):
+                        return f"在字段 '{key}' 中发现内容截断标记"
+                    elif isinstance(value, list):
+                        for i, item in enumerate(value):
+                            if isinstance(item, dict):
+                                result = find_truncation_in_dict(item)
+                                if result:
+                                    return f"在列表索引 {i} 的 {result}"
+                            elif check_truncation(item):
+                                return f"在列表索引 {i} 中发现内容截断标记"
+                    elif isinstance(value, dict):
+                        result = find_truncation_in_dict(value)
+                        if result:
+                            return f"在嵌套字典的 {result}"
+                return None
+
+            # 检查是否存在截断标记
+            truncation_location = find_truncation_in_dict(data)
+            if truncation_location and not append_mode:
+                raise RuleImportError(
+                    f"发现内容截断 ({truncation_location})。请使用分批导入:\n"
+                    "1. 设置 append_mode=True\n"
+                    "2. 分多次导入完整内容\n"
+                    "3. 最后一次导入时设置 append_mode=False 表示导入完成"
+                )
+
+            # 在追加模式下，检查规则是否已存在
+            if append_mode:
+                rule_id = data.get('rule_id')
+                if not rule_id:
+                    raise RuleImportError("追加模式下必须提供 rule_id")
+                
+                existing_rule = self.db.get_rule_by_id(rule_id)
+                if not existing_rule:
+                    if not merge:
+                        raise RuleImportError(f"追加模式下找不到规则 {rule_id}，请先导入基础规则或使用 merge=True")
+                else:
+                    # 合并规则内容
+                    self._merge_rule_content(existing_rule, data)
+                    return [existing_rule]
+
+            # 支持单个规则和规则列表
+            if isinstance(data, dict):
+                rule = self._create_rule_from_yaml(data, "<content>")  # 使用特殊标记表示内容导入
+                return [rule]
+            elif isinstance(data, list):
+                return [self._create_rule_from_yaml(item, "<content>") for item in data]
+            else:
+                raise RuleImportError("无效的YAML格式")
+
+        except yaml.YAMLError as e:
+            raise RuleImportError(f"YAML解析错误: {e}")
+        except Exception as e:
+            raise RuleImportError(f"导入规则失败: {e}")
+
+    def import_rule(self, file_path: str, merge: bool = False, is_http_api: bool = False) -> List[CursorRule]:
+        """
+        从YAML文件或URL导入规则
+        
+        Args:
+            file_path: YAML文件路径或HTTPS URL
+            merge: 是否合并已存在的规则
+            is_http_api: 是否通过HTTP/JSONRPC API调用
+            
+        Returns:
+            导入的规则列表
+        """
+        try:
+            # 检查是否为URL
+            is_url = self.is_valid_url(file_path)
+            
+            # 如果是HTTP API调用，只允许URL导入
+            if is_http_api and not is_url:
+                raise RuleImportError(
+                    "通过HTTP/JSONRPC API只能导入HTTPS URL，不支持本地文件导入。"
+                    "请提供有效的HTTPS URL，例如: https://example.com/rules/my_rule.yaml"
+                )
+
+            # 读取文件内容
+            if is_url:
+                try:
+                    response = requests.get(file_path, timeout=30, verify=True)
+                    response.raise_for_status()
+                    content = response.text
+                except requests.exceptions.RequestException as e:
+                    raise RuleImportError(f"从URL获取规则文件失败: {e}")
+            else:
+                # 本地文件读取
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                except Exception as e:
+                    raise RuleImportError(f"读取本地文件失败: {e}")
+
+            # 文件导入不支持追加模式，append_mode 固定为 False
+            return self.import_content(content, merge, append_mode=False)
+
+        except Exception as e:
+            raise RuleImportError(f"导入规则失败: {e}")
+
 
 class JsonRuleParser(RuleParser):
     """JSON格式规则解析器"""
+    
+    def __init__(self, db: RuleDatabase):
+        """
+        初始化JSON规则解析器
+        
+        Args:
+            db: 规则数据库实例
+        """
+        super().__init__(db)
     
     def can_parse(self, file_path: Path) -> bool:
         """检查是否为JSON文件"""
@@ -634,7 +872,7 @@ class JsonRuleParser(RuleParser):
                 raise ValueError(f"JSON文件为空: {file_path}")
             
             # 使用YAML解析器的逻辑（JSON是YAML的子集）
-            yaml_parser = YamlRuleParser()
+            yaml_parser = YamlRuleParser(self.db)
             
             if isinstance(data, dict):
                 rule = yaml_parser._create_rule_from_yaml(data, file_path)
@@ -659,14 +897,23 @@ class UnifiedRuleImporter:
     
     def __init__(self, save_to_database: bool = True):
         """初始化导入器"""
-        self.parsers = [
-            MarkdownRuleParser(),
-            YamlRuleParser(),
-            JsonRuleParser()
-        ]
+        self.parsers = []  # 初始化为空，在需要时延迟创建
         self.import_log: List[Dict[str, Any]] = []
         self.save_to_database = save_to_database
         self.database = None
+        self._parsers_initialized = False
+
+    async def _ensure_parsers_initialized(self):
+        """确保解析器已初始化"""
+        if not self._parsers_initialized:
+            await self.initialize_database()
+            if self.database:
+                self.parsers = [
+                    MarkdownRuleParser(self.database),
+                    YamlRuleParser(self.database),
+                    JsonRuleParser(self.database)
+                ]
+                self._parsers_initialized = True
 
     async def initialize_database(self):
         """初始化数据库连接"""
@@ -682,18 +929,20 @@ class UnifiedRuleImporter:
                                merge: Optional[bool] = None,
                                interactive: bool = False) -> List[CursorRule]:
         """异步导入规则（支持数据库保存，支持merge/交互确认）"""
-        await self.initialize_database()
-        rules = self.import_rules(paths, recursive, format_hint)
+        await self._ensure_parsers_initialized()
+        rules = await self.import_rules(paths, recursive, format_hint)
         
         # 保存到数据库
         if self.save_to_database and self.database:
             for rule in rules:
+                # 初始化保存路径
+                rule_filename = f"{rule.rule_id.lower().replace('-', '_')}.yaml"
+                save_path = Path(self.database.data_dir) / "imported" / rule_filename
+                
                 try:
                     # 检查是否已存在
                     exists = rule.rule_id in self.database.rules
-                    # 创建保存路径
-                    rule_filename = f"{rule.rule_id.lower().replace('-', '_')}.yaml"
-                    save_path = self.database.data_dir / "imported" / rule_filename
+                    
                     if exists:
                         if merge is True:
                             # 允许覆盖
@@ -718,7 +967,7 @@ class UnifiedRuleImporter:
                     self._log_error(str(save_path), f"❌ 保存规则到数据库失败 {rule.rule_id}: {e}")
         return rules
 
-    def import_rules(self, 
+    async def import_rules(self, 
                      paths: List[Union[str, Path]], 
                      recursive: bool = False,
                      format_hint: Optional[str] = None) -> List[CursorRule]:
@@ -732,23 +981,24 @@ class UnifiedRuleImporter:
         Returns:
             导入的规则列表
         """
+        await self._ensure_parsers_initialized()
         all_rules = []
         
         for path in paths:
             path = Path(path)
             
             if path.is_file():
-                rules = self._import_file(path, format_hint)
+                rules = await self._import_file(path, format_hint)
                 all_rules.extend(rules)
             elif path.is_dir():
-                rules = self._import_directory(path, recursive, format_hint)
+                rules = await self._import_directory(path, recursive, format_hint)
                 all_rules.extend(rules)
             else:
                 self._log_error(str(path), f"路径不存在: {path}")
         
         return all_rules
     
-    def _import_file(self, file_path: Path, format_hint: Optional[str] = None) -> List[CursorRule]:
+    async def _import_file(self, file_path: Path, format_hint: Optional[str] = None) -> List[CursorRule]:
         """导入单个文件"""
         try:
             # 检查文件是否存在
@@ -774,7 +1024,7 @@ class UnifiedRuleImporter:
             self._log_error(str(file_path), f"导入失败: {e}")
             return []
     
-    def _import_directory(self, dir_path: Path, recursive: bool, format_hint: Optional[str] = None) -> List[CursorRule]:
+    async def _import_directory(self, dir_path: Path, recursive: bool, format_hint: Optional[str] = None) -> List[CursorRule]:
         """导入目录中的文件"""
         all_rules = []
         
@@ -793,7 +1043,7 @@ class UnifiedRuleImporter:
         pattern = '**/*' if recursive else '*'
         for file_path in dir_path.glob(pattern):
             if file_path.is_file() and file_path.suffix.lower() in extensions:
-                rules = self._import_file(file_path, format_hint)
+                rules = await self._import_file(file_path, format_hint)
                 all_rules.extend(rules)
         
         return all_rules

@@ -14,6 +14,7 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
+import os
 
 import yaml
 from packaging import version
@@ -198,11 +199,18 @@ class RuleConflictDetector:
 class RuleDatabase:
     """规则数据库管理器"""
 
-    def __init__(self, data_dir: Optional[Path] = None):
-        self.data_dir = data_dir or Path(get_config().rules_dir)
+    def __init__(self, data_dir: str = "data/rules"):
+        """
+        初始化规则数据库
+        
+        Args:
+            data_dir: 数据目录路径
+        """
+        self.data_dir = data_dir
+        self.logger = logging.getLogger(__name__)
         self.version_manager = RuleVersionManager()
         self.conflict_detector = RuleConflictDetector()
-        self.rules: Dict[str, CursorRule] = {}  # rule_id -> latest_rule
+        self.rules: Dict[str, CursorRule] = {}
         self.rule_index: Dict[str, Set[str]] = {  # 索引
             "languages": {},
             "domains": {},
@@ -210,67 +218,41 @@ class RuleDatabase:
             "tags": {},
         }
         self._initialized = False
+        self.load_rules()
+
+    def load_rules(self):
+        """加载所有规则"""
+        # 确保目录存在
+        os.makedirs(self.data_dir, exist_ok=True)
+        
+        # 遍历所有规则文件
+        for root, _, files in os.walk(self.data_dir):
+            for file in files:
+                if file.endswith('.json'):
+                    file_path = os.path.join(root, file)
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            rules_data = json.load(f)
+                            if isinstance(rules_data, list):
+                                for rule_data in rules_data:
+                                    rule = CursorRule(**rule_data)
+                                    self.rules[rule.rule_id] = rule
+                            else:
+                                rule = CursorRule(**rules_data)
+                                self.rules[rule.rule_id] = rule
+                    except Exception as e:
+                        logger.error(f"加载规则文件 {file_path} 失败: {str(e)}")
 
     async def initialize(self) -> None:
         """初始化数据库"""
         if self._initialized:
             return
 
-        await self._load_rules()
         await self._build_indexes()
         await self._detect_all_conflicts()
         self._initialized = True
 
         logger.info(f"规则数据库初始化完成，加载了 {len(self.rules)} 条规则")
-
-    async def _load_rules(self) -> None:
-        """从文件系统加载规则"""
-        if not self.data_dir.exists():
-            logger.warning(f"规则目录不存在: {self.data_dir}")
-            return
-
-        loaded_count = 0
-        for file_path in self.data_dir.rglob("*.json"):
-            try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-
-                # 支持单个规则或规则列表
-                if isinstance(data, dict):
-                    data = [data]
-
-                for rule_data in data:
-                    rule = CursorRule(**rule_data)
-                    if self.version_manager.add_rule_version(rule):
-                        loaded_count += 1
-
-            except Exception as e:
-                logger.error(f"加载规则文件失败 {file_path}: {e}")
-
-        # 加载YAML文件
-        for file_path in self.data_dir.rglob("*.yaml"):
-            try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    data = yaml.safe_load(f)
-
-                if isinstance(data, dict):
-                    data = [data]
-
-                for rule_data in data:
-                    rule = CursorRule(**rule_data)
-                    if self.version_manager.add_rule_version(rule):
-                        loaded_count += 1
-
-            except Exception as e:
-                logger.error(f"加载规则文件失败 {file_path}: {e}")
-
-        # 更新主规则字典
-        for rule_id in self.version_manager.latest_versions:
-            latest_rule = self.version_manager.get_latest_rule(rule_id)
-            if latest_rule and latest_rule.active:
-                self.rules[rule_id] = latest_rule
-
-        logger.info(f"从文件系统加载了 {loaded_count} 条规则")
 
     async def _build_indexes(self) -> None:
         """构建搜索索引"""
@@ -369,7 +351,7 @@ class RuleDatabase:
 
         # 保存到文件
         if file_path:
-            await self._save_rule_to_file(rule, file_path)
+            self.save_rule(rule, merge=False, append_mode=False)
 
         logger.info(f"成功添加规则 {rule.rule_id} v{rule.version}")
         return True
@@ -391,25 +373,115 @@ class RuleDatabase:
 
         return await self.add_rule(rule)
 
-    async def _save_rule_to_file(self, rule: CursorRule, file_path: Path) -> None:
-        """保存规则到文件"""
+    def save_rule(self, rule: CursorRule, merge: bool = False, append_mode: bool = False) -> None:
+        """
+        保存规则到文件系统
+        
+        Args:
+            rule: 要保存的规则
+            merge: 是否合并已存在的规则
+            append_mode: 是否为追加模式，用于分批导入大文件
+        """
         try:
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-
-            # 将规则转换为可序列化的字典
+            # 确定保存路径
+            file_path = self._get_rule_file_path(rule)
+            
+            # 如果是追加模式，先读取现有内容
+            existing_content = None
+            if append_mode and file_path.exists():
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    existing_content = yaml.safe_load(f)
+            
+            # 转换规则为字典
             rule_dict = self._convert_rule_for_serialization(rule)
+            
+            # 在追加模式下合并内容
+            if existing_content and append_mode:
+                rule_dict = self._merge_rule_dicts(existing_content, rule_dict)
+            
+            def format_multiline_text(text: str) -> str:
+                if not text or not isinstance(text, str):
+                    return text
+                if '\n' in text:
+                    # 使用 | 标记来保持多行文本格式，保持原始缩进
+                    lines = text.split('\n')
+                    # 找到最小缩进
+                    min_indent = float('inf')
+                    for line in lines[1:]:  # 跳过第一行
+                        if line.strip():  # 只考虑非空行
+                            indent = len(line) - len(line.lstrip())
+                            min_indent = min(min_indent, indent)
+                    min_indent = 0 if min_indent == float('inf') else min_indent
+                    
+                    # 调整缩进，保持相对缩进关系
+                    formatted_lines = []
+                    formatted_lines.append('|')  # YAML 多行文本标记
+                    for line in lines:
+                        if line.strip():  # 非空行
+                            # 保持相对缩进，但确保至少有2个空格
+                            indent = len(line) - len(line.lstrip())
+                            relative_indent = max(2, indent - min_indent + 2)
+                            formatted_lines.append(' ' * relative_indent + line.lstrip())
+                        else:  # 空行
+                            formatted_lines.append('  ')  # 保持最小缩进
+                    return '\n'.join(formatted_lines)
+                return text
 
-            with open(file_path, "w", encoding="utf-8") as f:
-                if file_path.suffix == ".yaml":
-                    yaml.dump(
-                        rule_dict, f, default_flow_style=False, allow_unicode=True
-                    )
-                else:
-                    json.dump(rule_dict, f, indent=2, ensure_ascii=False, default=str)
+            # 递归处理所有字段
+            def process_data(data):
+                if isinstance(data, dict):
+                    return {k: process_data(v) for k, v in data.items()}
+                elif isinstance(data, list):
+                    return [process_data(item) for item in data]
+                elif isinstance(data, str):
+                    return format_multiline_text(data)
+                return data
 
-            logger.info(f"规则已保存到 {file_path}")
+            rule_dict = process_data(rule_dict)
+
+            # 保存为YAML文件，设置更大的行宽以避免自动换行
+            with open(file_path, 'w', encoding='utf-8') as f:
+                yaml.dump(
+                    rule_dict,
+                    f,
+                    allow_unicode=True,
+                    sort_keys=False,
+                    width=10000,  # 设置非常大的宽度以避免自动换行
+                    indent=2,
+                    default_flow_style=False
+                )
+
+            self.logger.info(f"规则已保存到 {file_path}")
         except Exception as e:
-            logger.error(f"保存规则到文件失败 {file_path}: {e}")
+            self.logger.error(f"保存规则到文件失败: {e}")
+            raise
+
+    def _merge_rule_dicts(self, existing: dict, new: dict) -> dict:
+        """合并两个规则字典"""
+        result = existing.copy()
+        
+        for key, value in new.items():
+            if key == 'rules' and isinstance(value, list):
+                # 特殊处理规则列表
+                existing_rules = result.get('rules', [])
+                for new_rule in value:
+                    if isinstance(new_rule, dict):
+                        condition = new_rule.get('condition')
+                        if condition:
+                            # 查找并更新已存在的条件
+                            found = False
+                            for existing_rule in existing_rules:
+                                if existing_rule.get('condition') == condition:
+                                    existing_rule.update(new_rule)
+                                    found = True
+                                    break
+                            if not found:
+                                existing_rules.append(new_rule)
+                result['rules'] = existing_rules
+            elif value is not None:  # 只更新非空值
+                result[key] = value
+                
+        return result
 
     def _convert_rule_for_serialization(self, rule: CursorRule) -> Dict[str, Any]:
         """将规则转换为可序列化的字典格式"""
@@ -644,6 +716,10 @@ class RuleDatabase:
         # 限制结果数量
         return results[:limit]
 
+    def _get_rule_file_path(self, rule: CursorRule) -> Path:
+        """获取规则文件路径"""
+        return Path(self.data_dir) / f"{rule.rule_id}.{rule.version.replace('.', '_')}.yaml"
+
 
 # 全局数据库实例
 _rule_database: Optional[RuleDatabase] = None
@@ -653,7 +729,7 @@ def get_rule_database() -> RuleDatabase:
     """获取规则数据库实例"""
     global _rule_database
     if _rule_database is None:
-        _rule_database = RuleDatabase()
+        _rule_database = RuleDatabase(get_config().rules_dir)
     return _rule_database
 
 

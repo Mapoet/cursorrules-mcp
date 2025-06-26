@@ -12,31 +12,54 @@ License: MIT
 import asyncio
 import json
 import logging
-from typing import Dict, Any, Optional, AsyncGenerator
+from typing import Dict, Any, Optional, AsyncGenerator, List
 from pathlib import Path
 import uuid
 from datetime import datetime
-
-# HTTP相关导入
-try:
-    from fastapi import FastAPI, Request, Response
-    from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.responses import StreamingResponse
-    import uvicorn
-except ImportError:
-    print("FastAPI未安装，请运行: pip install fastapi uvicorn")
-    exit(1)
-
+from fastapi import FastAPI, Request, Response, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+import uvicorn
+from pydantic import BaseModel, HttpUrl
 from .engine import RuleEngine
 from .models import (
     MCPContext, SearchFilter, ValidationSeverity, RuleType,
-    ContentType, TaskType
+    ContentType, TaskType, CursorRule
 )
+from .rule_import import YamlRuleParser, RuleImportError
+from pydantic import validator
+from .database import get_rule_database
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+class ImportRuleRequest(BaseModel):
+    """规则导入请求"""
+    url: Optional[HttpUrl] = None  # 可选的HTTPS URL
+    content: Optional[str] = None  # 可选的YAML内容
+    merge: bool = False
+    append_mode: bool = False  # 仅用于内容导入
+
+    @validator('content', 'url')
+    def validate_import_source(cls, v, values):
+        # 确保至少提供了一个导入源
+        if not values.get('url') and not values.get('content'):
+            raise ValueError("必须提供 url 或 content 中的一个")
+        return v
+
+    @validator('append_mode')
+    def validate_append_mode(cls, v, values):
+        # append_mode 只能用于内容导入
+        if v and values.get('url'):
+            raise ValueError("append_mode 只能用于内容导入，不支持URL导入")
+        return v
+
+class ImportRuleResponse(BaseModel):
+    """规则导入响应"""
+    success: bool
+    message: str
+    rules: List[dict] = []
 
 class MCPHttpServer:
     """
@@ -203,6 +226,50 @@ class MCPHttpServer:
                     "Access-Control-Allow-Headers": "*",
                 }
             )
+        
+        @self.app.post("/import_rule", response_model=ImportRuleResponse)
+        async def import_rule(request: ImportRuleRequest):
+            """
+            导入规则
+            
+            支持两种导入方式：
+            1. 从HTTPS URL导入（不支持追加模式）
+            2. 直接导入YAML内容（支持追加模式）
+            
+            特性说明：
+            - URL导入：仅支持HTTPS，不支持追加模式
+            - 内容导入：支持分批导入和追加模式
+            - 两种方式都支持合并已存在的规则
+            """
+            try:
+                db = get_rule_database()
+                parser = YamlRuleParser(db)
+                
+                if request.url:
+                    # 从URL导入（不支持追加模式）
+                    rules = parser.import_rule(
+                        str(request.url),
+                        merge=request.merge,
+                        is_http_api=True
+                    )
+                else:
+                    # 从内容导入（支持追加模式）
+                    rules = parser.import_content(
+                        request.content,
+                        merge=request.merge,
+                        append_mode=request.append_mode
+                    )
+                
+                return ImportRuleResponse(
+                    success=True,
+                    message="规则导入成功",
+                    rules=[rule.dict() for rule in rules]
+                )
+                
+            except RuleImportError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
     
     def _validate_jsonrpc(self, data: Dict[str, Any]) -> bool:
         """验证JSON-RPC请求格式"""
