@@ -1,0 +1,971 @@
+<!DOCTYPE html><html><head>
+      <title>techs</title>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
+      
+      
+      <script src="https://cdn.jsdelivr.net/npm/mermaid@11.5.0/dist/mermaid.min.js"></script>
+      
+      
+      <style>
+      code[class*=language-],pre[class*=language-]{color:#333;background:0 0;font-family:Consolas,"Liberation Mono",Menlo,Courier,monospace;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.4;-moz-tab-size:8;-o-tab-size:8;tab-size:8;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}pre[class*=language-]{padding:.8em;overflow:auto;border-radius:3px;background:#f5f5f5}:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal;background:#f5f5f5}.token.blockquote,.token.comment{color:#969896}.token.cdata{color:#183691}.token.doctype,.token.macro.property,.token.punctuation,.token.variable{color:#333}.token.builtin,.token.important,.token.keyword,.token.operator,.token.rule{color:#a71d5d}.token.attr-value,.token.regex,.token.string,.token.url{color:#183691}.token.atrule,.token.boolean,.token.code,.token.command,.token.constant,.token.entity,.token.number,.token.property,.token.symbol{color:#0086b3}.token.prolog,.token.selector,.token.tag{color:#63a35c}.token.attr-name,.token.class,.token.class-name,.token.function,.token.id,.token.namespace,.token.pseudo-class,.token.pseudo-element,.token.url-reference .token.variable{color:#795da3}.token.entity{cursor:help}.token.title,.token.title .token.punctuation{font-weight:700;color:#1d3e81}.token.list{color:#ed6a43}.token.inserted{background-color:#eaffea;color:#55a532}.token.deleted{background-color:#ffecec;color:#bd2c00}.token.bold{font-weight:700}.token.italic{font-style:italic}.language-json .token.property{color:#183691}.language-markup .token.tag .token.punctuation{color:#333}.language-css .token.function,code.language-css{color:#0086b3}.language-yaml .token.atrule{color:#63a35c}code.language-yaml{color:#183691}.language-ruby .token.function{color:#333}.language-markdown .token.url{color:#795da3}.language-makefile .token.symbol{color:#795da3}.language-makefile .token.variable{color:#183691}.language-makefile .token.builtin{color:#0086b3}.language-bash .token.keyword{color:#0086b3}pre[data-line]{position:relative;padding:1em 0 1em 3em}pre[data-line] .line-highlight-wrapper{position:absolute;top:0;left:0;background-color:transparent;display:block;width:100%}pre[data-line] .line-highlight{position:absolute;left:0;right:0;padding:inherit 0;margin-top:1em;background:hsla(24,20%,50%,.08);background:linear-gradient(to right,hsla(24,20%,50%,.1) 70%,hsla(24,20%,50%,0));pointer-events:none;line-height:inherit;white-space:pre}pre[data-line] .line-highlight:before,pre[data-line] .line-highlight[data-end]:after{content:attr(data-start);position:absolute;top:.4em;left:.6em;min-width:1em;padding:0 .5em;background-color:hsla(24,20%,50%,.4);color:#f4f1ef;font:bold 65%/1.5 sans-serif;text-align:center;vertical-align:.3em;border-radius:999px;text-shadow:none;box-shadow:0 1px #fff}pre[data-line] .line-highlight[data-end]:after{content:attr(data-end);top:auto;bottom:.4em}html body{font-family:'Helvetica Neue',Helvetica,'Segoe UI',Arial,freesans,sans-serif;font-size:16px;line-height:1.6;color:#333;background-color:#fff;overflow:initial;box-sizing:border-box;word-wrap:break-word}html body>:first-child{margin-top:0}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{line-height:1.2;margin-top:1em;margin-bottom:16px;color:#000}html body h1{font-size:2.25em;font-weight:300;padding-bottom:.3em}html body h2{font-size:1.75em;font-weight:400;padding-bottom:.3em}html body h3{font-size:1.5em;font-weight:500}html body h4{font-size:1.25em;font-weight:600}html body h5{font-size:1.1em;font-weight:600}html body h6{font-size:1em;font-weight:600}html body h1,html body h2,html body h3,html body h4,html body h5{font-weight:600}html body h5{font-size:1em}html body h6{color:#5c5c5c}html body strong{color:#000}html body del{color:#5c5c5c}html body a:not([href]){color:inherit;text-decoration:none}html body a{color:#08c;text-decoration:none}html body a:hover{color:#00a3f5;text-decoration:none}html body img{max-width:100%}html body>p{margin-top:0;margin-bottom:16px;word-wrap:break-word}html body>ol,html body>ul{margin-bottom:16px}html body ol,html body ul{padding-left:2em}html body ol.no-list,html body ul.no-list{padding:0;list-style-type:none}html body ol ol,html body ol ul,html body ul ol,html body ul ul{margin-top:0;margin-bottom:0}html body li{margin-bottom:0}html body li.task-list-item{list-style:none}html body li>p{margin-top:0;margin-bottom:0}html body .task-list-item-checkbox{margin:0 .2em .25em -1.8em;vertical-align:middle}html body .task-list-item-checkbox:hover{cursor:pointer}html body blockquote{margin:16px 0;font-size:inherit;padding:0 15px;color:#5c5c5c;background-color:#f0f0f0;border-left:4px solid #d6d6d6}html body blockquote>:first-child{margin-top:0}html body blockquote>:last-child{margin-bottom:0}html body hr{height:4px;margin:32px 0;background-color:#d6d6d6;border:0 none}html body table{margin:10px 0 15px 0;border-collapse:collapse;border-spacing:0;display:block;width:100%;overflow:auto;word-break:normal;word-break:keep-all}html body table th{font-weight:700;color:#000}html body table td,html body table th{border:1px solid #d6d6d6;padding:6px 13px}html body dl{padding:0}html body dl dt{padding:0;margin-top:16px;font-size:1em;font-style:italic;font-weight:700}html body dl dd{padding:0 16px;margin-bottom:16px}html body code{font-family:Menlo,Monaco,Consolas,'Courier New',monospace;font-size:.85em;color:#000;background-color:#f0f0f0;border-radius:3px;padding:.2em 0}html body code::after,html body code::before{letter-spacing:-.2em;content:'\00a0'}html body pre>code{padding:0;margin:0;word-break:normal;white-space:pre;background:0 0;border:0}html body .highlight{margin-bottom:16px}html body .highlight pre,html body pre{padding:1em;overflow:auto;line-height:1.45;border:#d6d6d6;border-radius:3px}html body .highlight pre{margin-bottom:0;word-break:normal}html body pre code,html body pre tt{display:inline;max-width:initial;padding:0;margin:0;overflow:initial;line-height:inherit;word-wrap:normal;background-color:transparent;border:0}html body pre code:after,html body pre code:before,html body pre tt:after,html body pre tt:before{content:normal}html body blockquote,html body dl,html body ol,html body p,html body pre,html body ul{margin-top:0;margin-bottom:16px}html body kbd{color:#000;border:1px solid #d6d6d6;border-bottom:2px solid #c7c7c7;padding:2px 4px;background-color:#f0f0f0;border-radius:3px}@media print{html body{background-color:#fff}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{color:#000;page-break-after:avoid}html body blockquote{color:#5c5c5c}html body pre{page-break-inside:avoid}html body table{display:table}html body img{display:block;max-width:100%;max-height:100%}html body code,html body pre{word-wrap:break-word;white-space:pre}}.markdown-preview{width:100%;height:100%;box-sizing:border-box}.markdown-preview ul{list-style:disc}.markdown-preview ul ul{list-style:circle}.markdown-preview ul ul ul{list-style:square}.markdown-preview ol{list-style:decimal}.markdown-preview ol ol,.markdown-preview ul ol{list-style-type:lower-roman}.markdown-preview ol ol ol,.markdown-preview ol ul ol,.markdown-preview ul ol ol,.markdown-preview ul ul ol{list-style-type:lower-alpha}.markdown-preview .newpage,.markdown-preview .pagebreak{page-break-before:always}.markdown-preview pre.line-numbers{position:relative;padding-left:3.8em;counter-reset:linenumber}.markdown-preview pre.line-numbers>code{position:relative}.markdown-preview pre.line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:1em;font-size:100%;left:0;width:3em;letter-spacing:-1px;border-right:1px solid #999;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.markdown-preview pre.line-numbers .line-numbers-rows>span{pointer-events:none;display:block;counter-increment:linenumber}.markdown-preview pre.line-numbers .line-numbers-rows>span:before{content:counter(linenumber);color:#999;display:block;padding-right:.8em;text-align:right}.markdown-preview .mathjax-exps .MathJax_Display{text-align:center!important}.markdown-preview:not([data-for=preview]) .code-chunk .code-chunk-btn-group{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .status{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .output-div{margin-bottom:16px}.markdown-preview .md-toc{padding:0}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link div,.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}.markdown-preview .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}.scrollbar-style::-webkit-scrollbar{width:8px}.scrollbar-style::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}.scrollbar-style::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode]){position:relative;width:100%;height:100%;top:0;left:0;margin:0;padding:0;overflow:auto}html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{position:relative;top:0;min-height:100vh}@media screen and (min-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em calc(50% - 457px + 2em)}}@media screen and (max-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{font-size:14px!important;padding:1em}}@media print{html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{display:none}}html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{position:fixed;bottom:8px;left:8px;font-size:28px;cursor:pointer;color:inherit;z-index:99;width:32px;text-align:center;opacity:.4}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] #sidebar-toc-btn{opacity:1}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc{position:fixed;top:0;left:0;width:300px;height:100%;padding:32px 0 48px 0;font-size:14px;box-shadow:0 0 4px rgba(150,150,150,.33);box-sizing:border-box;overflow:auto;background-color:inherit}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar{width:8px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc a{text-decoration:none}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc{padding:0 16px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link div,html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{left:300px;width:calc(100% - 300px);padding:2em calc(50% - 457px - 300px / 2);margin:0;box-sizing:border-box}@media screen and (max-width:1274px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{width:100%}}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .markdown-preview{left:50%;transform:translateX(-50%)}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .md-sidebar-toc{display:none}
+/* Please visit the URL below for more information: */
+/*   https://shd101wyy.github.io/markdown-preview-enhanced/#/customize-css */
+
+      </style>
+      <!-- The content below will be included at the end of the <head> element. --><script type="text/javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    // your code here
+  });
+</script></head><body for="html-export">
+    
+    
+      <div class="crossnote markdown-preview  ">
+      
+<h1 id="cursorrules-mcp-技术架构报告">CursorRules-MCP 技术架构报告 </h1>
+<p><strong>版本</strong>: v1.4.0<br>
+<strong>日期</strong>: 2025-01-23<br>
+<strong>作者</strong>: Mapoet<br>
+<strong>机构</strong>: NUS/STAR</p>
+<hr>
+<h2 id="-技术概览">📋 技术概览 </h2>
+<p>CursorRules-MCP是一个基于Model Context Protocol (MCP)的智能编程规则与提示模板管理系统。项目采用现代Python技术栈，实现了多协议服务架构，为LLM应用提供标准化的代码质量控制与内容验证服务。</p>
+<h3 id="-项目定位">🎯 项目定位 </h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>目标用户</strong></td>
+<td>LLM开发者、代码审查团队、软件工程师、技术写作者</td>
+</tr>
+<tr>
+<td><strong>应用场景</strong></td>
+<td>代码生成质量控制、文档标准化、规则库管理、内容合规性校验</td>
+</tr>
+<tr>
+<td><strong>技术特色</strong></td>
+<td>多协议支持、异步处理、智能匹配、可扩展架构</td>
+</tr>
+<tr>
+<td><strong>集成方式</strong></td>
+<td>MCP客户端、HTTP API、命令行工具、Python库</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="️-整体架构设计">🏗️ 整体架构设计 </h2>
+<h3 id="系统架构图">系统架构图 </h3>
+<div class="mermaid">graph TB
+    subgraph "客户端层 (Client Layer)"
+        MCP[MCP客户端]
+        HTTP[HTTP客户端]
+        CLI[命令行工具]
+        PY[Python库调用]
+    end
+    
+    subgraph "接口层 (Interface Layer)"
+        MCPS[MCP服务器&lt;br/&gt;server.py]
+        HTTPS[HTTP服务器&lt;br/&gt;http_server.py]
+        CLIS[CLI服务&lt;br/&gt;cursorrules_cli.py]
+    end
+    
+    subgraph "业务逻辑层 (Business Logic Layer)"
+        ENGINE[规则引擎&lt;br/&gt;RuleEngine]
+        VALIDATOR[验证管理器&lt;br/&gt;ValidationManager]
+        IMPORTER[规则导入器&lt;br/&gt;UnifiedRuleImporter]
+        GENERATOR[规则生成器&lt;br/&gt;RuleGenerator]
+    end
+    
+    subgraph "数据层 (Data Layer)"
+        DB[(规则数据库&lt;br/&gt;RuleDatabase)]
+        CACHE[(缓存系统)]
+        FILES[文件系统&lt;br/&gt;规则文件/模板]
+    end
+    
+    subgraph "工具层 (Tool Layer)"
+        FLAKE8[Flake8]
+        PYLINT[Pylint]
+        BLACK[Black]
+        ESLINT[ESLint]
+        CUSTOM[自定义验证器]
+    end
+    
+    MCP --&gt; MCPS
+    HTTP --&gt; HTTPS  
+    CLI --&gt; CLIS
+    PY --&gt; ENGINE
+    
+    MCPS --&gt; ENGINE
+    HTTPS --&gt; ENGINE
+    CLIS --&gt; ENGINE
+    
+    ENGINE --&gt; DB
+    ENGINE --&gt; CACHE
+    ENGINE --&gt; VALIDATOR
+    ENGINE --&gt; IMPORTER
+    ENGINE --&gt; GENERATOR
+    
+    VALIDATOR --&gt; FLAKE8
+    VALIDATOR --&gt; PYLINT
+    VALIDATOR --&gt; BLACK
+    VALIDATOR --&gt; ESLINT
+    VALIDATOR --&gt; CUSTOM
+    
+    IMPORTER --&gt; DB
+    IMPORTER --&gt; FILES
+    GENERATOR --&gt; DB
+</div><h3 id="核心组件关系">核心组件关系 </h3>
+<div class="mermaid">classDiagram
+    class RuleEngine {
+        +rules: Dict[str, CursorRule]
+        +database: RuleDatabase
+        +validation_tools: ValidationManager
+        +prompt_templates: List[PromptTemplate]
+        +initialize() async
+        +search_rules(filter: SearchFilter) async
+        +validate_content(content: str, context: MCPContext) async
+        +enhance_prompt(prompt: str, context: MCPContext) async
+        +get_statistics() dict
+    }
+    
+    class MCPHttpServer {
+        +app: FastAPI
+        +rule_engine: RuleEngine
+        +_setup_routes()
+        +_handle_mcp_request(request: dict) async
+        +run()
+    }
+    
+    class CursorRulesMCPServer {
+        +mcp: FastMCP
+        +rule_engine: RuleEngine
+        +setup_handlers()
+        +run()
+    }
+    
+    class RuleDatabase {
+        +rules: Dict[str, CursorRule]
+        +data_dir: str
+        +save_rule(rule: CursorRule) async
+        +load_rules() async
+        +get_rule(rule_id: str) CursorRule
+        +delete_rule(rule_id: str) async
+    }
+    
+    class UnifiedRuleImporter {
+        +parsers: Dict[str, RuleParser]
+        +database: RuleDatabase
+        +import_rules_async(files: List[str]) async
+        +import_content(content: str) async
+    }
+    
+    class ValidationManager {
+        +validators: Dict[str, BaseValidator]
+        +validate_async(content: str, language: str) async
+        +get_validator(language: str) BaseValidator
+    }
+    
+    RuleEngine --&gt; RuleDatabase
+    RuleEngine --&gt; ValidationManager
+    RuleEngine --&gt; UnifiedRuleImporter
+    MCPHttpServer --&gt; RuleEngine
+    CursorRulesMCPServer --&gt; RuleEngine
+    UnifiedRuleImporter --&gt; RuleDatabase
+</div><hr>
+<h2 id="-技术路线图">🔧 技术路线图 </h2>
+<h3 id="发展阶段">发展阶段 </h3>
+<div class="mermaid">timeline
+    title CursorRules-MCP 技术演进路线
+    
+    section 基础阶段 (v1.0.x)
+        MCP协议集成 : 实现基础MCP服务器
+                   : 规则搜索功能
+                   : CLI工具开发
+    
+    section 扩展阶段 (v1.1.x-v1.2.x)
+        多协议支持 : HTTP/REST API服务器
+                   : 规则验证系统
+                   : 统计分析功能
+                   : 多格式导入支持
+    
+    section 完善阶段 (v1.3.x-v1.4.x)
+        架构优化 : 异步处理架构
+                 : 错误处理完善
+                 : 输出模式控制
+                 : 性能优化
+    
+    section 未来规划 (v2.0.x+)
+        智能化增强 : AI驱动规则推荐
+                   : 自适应学习系统
+                   : 分布式部署支持
+                   : 实时协作功能
+</div><h3 id="技术选型决策">技术选型决策 </h3>
+<table>
+<thead>
+<tr>
+<th>技术领域</th>
+<th>选型</th>
+<th>理由</th>
+<th>替代方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Web框架</strong></td>
+<td>FastAPI</td>
+<td>高性能、自动文档生成、类型安全</td>
+<td>Flask, Django</td>
+</tr>
+<tr>
+<td><strong>异步框架</strong></td>
+<td>asyncio</td>
+<td>原生支持、生态成熟</td>
+<td>Twisted, Tornado</td>
+</tr>
+<tr>
+<td><strong>数据模型</strong></td>
+<td>Pydantic</td>
+<td>类型验证、序列化支持</td>
+<td>dataclasses, attrs</td>
+</tr>
+<tr>
+<td><strong>数据存储</strong></td>
+<td>SQLite/PostgreSQL</td>
+<td>轻量级开发、生产级扩展</td>
+<td>MongoDB, Redis</td>
+</tr>
+<tr>
+<td><strong>MCP实现</strong></td>
+<td>FastMCP</td>
+<td>标准协议支持、易于集成</td>
+<td>自研实现</td>
+</tr>
+<tr>
+<td><strong>命令行</strong></td>
+<td>Click/Typer</td>
+<td>功能丰富、用户友好</td>
+<td>argparse, fire</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="-数据流分析">📊 数据流分析 </h2>
+<h3 id="规则搜索数据流">规则搜索数据流 </h3>
+<div class="mermaid">sequenceDiagram
+    participant Client as 客户端
+    participant API as API层
+    participant Engine as 规则引擎
+    participant DB as 数据库
+    participant Cache as 缓存
+    
+    Client-&gt;&gt;API: 搜索请求 (SearchFilter)
+    API-&gt;&gt;Engine: search_rules(filter)
+    
+    Engine-&gt;&gt;Cache: 检查缓存
+    alt 缓存命中
+        Cache--&gt;&gt;Engine: 返回缓存结果
+    else 缓存未命中
+        Engine-&gt;&gt;DB: 查询规则数据
+        DB--&gt;&gt;Engine: 返回规则列表
+        Engine-&gt;&gt;Engine: 计算相关度评分
+        Engine-&gt;&gt;Cache: 更新缓存
+    end
+    
+    Engine--&gt;&gt;API: 返回ApplicableRule列表
+    API--&gt;&gt;Client: 格式化响应
+</div><h3 id="内容验证数据流">内容验证数据流 </h3>
+<div class="mermaid">sequenceDiagram
+    participant Client as 客户端
+    participant API as API层
+    participant Engine as 规则引擎
+    participant Validator as 验证器
+    participant Tools as 外部工具
+    
+    Client-&gt;&gt;API: 验证请求 (content, context)
+    API-&gt;&gt;Engine: validate_content()
+    
+    Engine-&gt;&gt;Engine: 搜索适用规则
+    Engine-&gt;&gt;Validator: 创建验证任务
+    
+    par 并行验证
+        Validator-&gt;&gt;Tools: Flake8检查
+        Tools--&gt;&gt;Validator: 结果1
+    and
+        Validator-&gt;&gt;Tools: Pylint检查  
+        Tools--&gt;&gt;Validator: 结果2
+    and
+        Validator-&gt;&gt;Tools: 自定义检查
+        Tools--&gt;&gt;Validator: 结果3
+    end
+    
+    Validator-&gt;&gt;Validator: 聚合验证结果
+    Validator--&gt;&gt;Engine: ValidationResult
+    Engine--&gt;&gt;API: 格式化结果
+    API--&gt;&gt;Client: 返回验证报告
+</div><h3 id="规则导入数据流">规则导入数据流 </h3>
+<div class="mermaid">flowchart TD
+    A[导入请求] --&gt; B{数据源类型}
+    
+    B --&gt;|文件路径| C[读取文件内容]
+    B --&gt;|直接内容| D[解析内容格式]
+    
+    C --&gt; D
+    D --&gt; E{格式类型}
+    
+    E --&gt;|Markdown| F[MarkdownRuleParser]
+    E --&gt;|YAML| G[YamlRuleParser]
+    E --&gt;|JSON| H[JsonRuleParser]
+    
+    F --&gt; I[解析规则结构]
+    G --&gt; I
+    H --&gt; I
+    
+    I --&gt; J[验证规则完整性]
+    J --&gt; K{验证通过?}
+    
+    K --&gt;|是| L[检查重复ID]
+    K --&gt;|否| M[返回错误信息]
+    
+    L --&gt; N{ID冲突?}
+    N --&gt;|是,merge=true| O[合并规则]
+    N --&gt;|是,merge=false| P[报告冲突]
+    N --&gt;|否| Q[保存到数据库]
+    
+    O --&gt; Q
+    Q --&gt; R[更新索引]
+    R --&gt; S[返回成功结果]
+    
+    P --&gt; M
+</div><hr>
+<h2 id="️-类设计框架">🏛️ 类设计框架 </h2>
+<h3 id="核心模型设计">核心模型设计 </h3>
+<div class="mermaid">classDiagram
+    class CursorRule {
+        +rule_id: str
+        +name: str
+        +version: str
+        +description: str
+        +rule_type: RuleType
+        +languages: List[str]
+        +domains: List[str]
+        +content_types: List[ContentType]
+        +task_types: List[TaskType]
+        +tags: List[str]
+        +rules: List[RuleCondition]
+        +validation: RuleValidation
+        +application: RuleApplication
+        +author: str
+        +created_at: datetime
+        +active: bool
+        +usage_count: int
+        +success_rate: float
+    }
+    
+    class RuleCondition {
+        +condition: str
+        +guideline: str
+        +priority: int
+        +enforcement: bool
+        +examples: List[dict]
+        +pattern: Optional[str]
+        +anti_pattern: Optional[str]
+    }
+    
+    class RuleValidation {
+        +tools: List[str]
+        +severity: ValidationSeverity
+        +auto_fix: bool
+        +timeout: int
+        +custom_script: Optional[str]
+    }
+    
+    class MCPContext {
+        +user_query: str
+        +current_file: Optional[str]
+        +project_path: Optional[str]
+        +primary_language: Optional[str]
+        +domain: Optional[str]
+        +task_type: Optional[TaskType]
+        +intent_tags: List[str]
+        +complexity_level: str
+        +target_audience: str
+    }
+    
+    class ValidationResult {
+        +is_valid: bool
+        +score: float
+        +issues: List[ValidationIssue]
+        +suggestions: List[str]
+        +applied_rules: List[str]
+        +execution_time: float
+        +context: MCPContext
+    }
+    
+    class ValidationIssue {
+        +rule_id: str
+        +condition: str
+        +severity: ValidationSeverity
+        +message: str
+        +line_number: Optional[int]
+        +column: Optional[int]
+        +suggestion: Optional[str]
+        +auto_fixable: bool
+    }
+    
+    CursorRule --&gt; RuleCondition
+    CursorRule --&gt; RuleValidation
+    ValidationResult --&gt; ValidationIssue
+    ValidationResult --&gt; MCPContext
+</div><h3 id="服务器架构模式">服务器架构模式 </h3>
+<h4 id="mcp服务器-serverpy-设计模式">MCP服务器 (<a href="http://server.py">server.py</a>) 设计模式 </h4>
+<p>CursorRulesMCPServer采用<strong>装饰器模式</strong>实现MCP工具注册，通过FastMCP框架提供标准化的MCP协议支持。核心设计原则：</p>
+<ol>
+<li><strong>工具导向设计</strong> - 每个功能作为独立的MCP工具暴露</li>
+<li><strong>异步优先</strong> - 所有IO操作使用async/await模式</li>
+<li><strong>类型安全</strong> - 完整的类型注解与验证</li>
+<li><strong>错误容错</strong> - 完善的异常处理与日志记录</li>
+</ol>
+<pre data-role="codeBlock" data-info="python" class="language-python python"><code><span class="token comment"># 设计模式示例</span>
+<span class="token decorator annotation punctuation">@self<span class="token punctuation">.</span>mcp<span class="token punctuation">.</span>tool</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token keyword keyword-async">async</span> <span class="token keyword keyword-def">def</span> <span class="token function">search_rules</span><span class="token punctuation">(</span>query<span class="token punctuation">:</span> <span class="token builtin">str</span> <span class="token operator">=</span> <span class="token string">""</span><span class="token punctuation">,</span> languages<span class="token punctuation">:</span> <span class="token builtin">str</span> <span class="token operator">=</span> <span class="token string">""</span><span class="token punctuation">,</span> <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">)</span> <span class="token operator">-</span><span class="token operator">&gt;</span> <span class="token builtin">str</span><span class="token punctuation">:</span>
+    <span class="token triple-quoted-string string">"""工具函数通过装饰器自动注册到MCP协议"""</span>
+    <span class="token keyword keyword-try">try</span><span class="token punctuation">:</span>
+        <span class="token keyword keyword-await">await</span> self<span class="token punctuation">.</span>_ensure_initialized<span class="token punctuation">(</span><span class="token punctuation">)</span>
+        <span class="token comment"># 业务逻辑处理</span>
+        <span class="token keyword keyword-return">return</span> formatted_result
+    <span class="token keyword keyword-except">except</span> Exception <span class="token keyword keyword-as">as</span> e<span class="token punctuation">:</span>
+        logger<span class="token punctuation">.</span>error<span class="token punctuation">(</span><span class="token string-interpolation"><span class="token string">f"搜索规则时发生错误: </span><span class="token interpolation"><span class="token punctuation">{</span>e<span class="token punctuation">}</span></span><span class="token string">"</span></span><span class="token punctuation">)</span>
+        <span class="token keyword keyword-return">return</span> <span class="token string-interpolation"><span class="token string">f"❌ 搜索失败: </span><span class="token interpolation"><span class="token punctuation">{</span><span class="token builtin">str</span><span class="token punctuation">(</span>e<span class="token punctuation">)</span><span class="token punctuation">}</span></span><span class="token string">"</span></span>
+</code></pre><h4 id="http服务器-http_serverpy-设计模式">HTTP服务器 (http_server.py) 设计模式 </h4>
+<p>MCPHttpServer采用<strong>组合模式</strong>构建REST API，通过FastAPI提供HTTP/JSON-RPC双协议支持。核心设计原则：</p>
+<ol>
+<li><strong>协议桥接</strong> - MCP协议与HTTP协议之间的适配层</li>
+<li><strong>请求路由</strong> - 统一的请求处理与分发机制</li>
+<li><strong>响应标准化</strong> - 统一的响应格式与错误处理</li>
+<li><strong>性能优化</strong> - 支持多进程部署与负载均衡</li>
+</ol>
+<h3 id="数据访问层设计">数据访问层设计 </h3>
+<div class="mermaid">classDiagram
+    class RuleDatabase {
+        +data_dir: str
+        +rules: Dict[str, CursorRule]
+        +version_manager: RuleVersionManager
+        +conflict_detector: RuleConflictDetector
+        
+        +save_rule(rule: CursorRule) async
+        +load_rules() async
+        +get_rule(rule_id: str) CursorRule
+        +delete_rule(rule_id: str) async
+        +get_database_stats() dict
+        +search_by_criteria(criteria: dict) List[CursorRule]
+    }
+    
+    class RuleVersionManager {
+        +manage_versions(rule: CursorRule) bool
+        +get_latest_version(rule_id: str) str
+        +get_version_history(rule_id: str) List[str]
+        +compare_versions(v1: str, v2: str) int
+    }
+    
+    class RuleConflictDetector {
+        +detect_conflicts(new_rule: CursorRule) List[str]
+        +resolve_conflicts(conflicts: List[str], strategy: str) bool
+        +merge_rules(base: CursorRule, incoming: CursorRule) CursorRule
+    }
+    
+    RuleDatabase --&gt; RuleVersionManager
+    RuleDatabase --&gt; RuleConflictDetector
+</div><hr>
+<h2 id="-核心工作流程">🔄 核心工作流程 </h2>
+<h3 id="系统初始化流程">系统初始化流程 </h3>
+<div class="mermaid">flowchart TD
+    A[系统启动] --&gt; B[加载配置文件]
+    B --&gt; C[初始化日志系统]
+    C --&gt; D[创建数据库连接]
+    D --&gt; E[加载规则引擎]
+    E --&gt; F[构建规则索引]
+    F --&gt; G[初始化验证器]
+    G --&gt; H[加载提示模板]
+    H --&gt; I[启动服务监听]
+    I --&gt; J[系统就绪]
+    
+    style A fill:#e1f5fe
+    style J fill:#c8e6c9
+    style F fill:#fff3e0
+    style G fill:#fff3e0
+</div><h3 id="规则匹配算法">规则匹配算法 </h3>
+<p>系统采用多维度评分算法进行规则匹配，确保返回最相关的规则集合：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python python"><code><span class="token keyword keyword-def">def</span> <span class="token function">_calculate_rule_score</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> rule<span class="token punctuation">:</span> CursorRule<span class="token punctuation">,</span> search_filter<span class="token punctuation">:</span> SearchFilter<span class="token punctuation">)</span> <span class="token operator">-</span><span class="token operator">&gt;</span> <span class="token builtin">float</span><span class="token punctuation">:</span>
+    <span class="token triple-quoted-string string">"""
+    多维度规则评分算法
+    
+    评分维度：
+    1. 语言匹配度 (权重: 0.3)
+    2. 领域匹配度 (权重: 0.25)  
+    3. 标签匹配度 (权重: 0.2)
+    4. 内容类型匹配度 (权重: 0.15)
+    5. 查询相关度 (权重: 0.1)
+    """</span>
+    score <span class="token operator">=</span> <span class="token number">0.0</span>
+    
+    <span class="token comment"># 语言匹配评分</span>
+    <span class="token keyword keyword-if">if</span> search_filter<span class="token punctuation">.</span>languages<span class="token punctuation">:</span>
+        language_score <span class="token operator">=</span> <span class="token builtin">len</span><span class="token punctuation">(</span><span class="token builtin">set</span><span class="token punctuation">(</span>rule<span class="token punctuation">.</span>languages<span class="token punctuation">)</span> <span class="token operator">&amp;</span> <span class="token builtin">set</span><span class="token punctuation">(</span>search_filter<span class="token punctuation">.</span>languages<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">/</span> <span class="token builtin">len</span><span class="token punctuation">(</span>search_filter<span class="token punctuation">.</span>languages<span class="token punctuation">)</span>
+        score <span class="token operator">+=</span> language_score <span class="token operator">*</span> <span class="token number">0.3</span>
+    
+    <span class="token comment"># 领域匹配评分  </span>
+    <span class="token keyword keyword-if">if</span> search_filter<span class="token punctuation">.</span>domains<span class="token punctuation">:</span>
+        domain_score <span class="token operator">=</span> <span class="token builtin">len</span><span class="token punctuation">(</span><span class="token builtin">set</span><span class="token punctuation">(</span>rule<span class="token punctuation">.</span>domains<span class="token punctuation">)</span> <span class="token operator">&amp;</span> <span class="token builtin">set</span><span class="token punctuation">(</span>search_filter<span class="token punctuation">.</span>domains<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">/</span> <span class="token builtin">len</span><span class="token punctuation">(</span>search_filter<span class="token punctuation">.</span>domains<span class="token punctuation">)</span>
+        score <span class="token operator">+=</span> domain_score <span class="token operator">*</span> <span class="token number">0.25</span>
+        
+    <span class="token comment"># 标签匹配评分</span>
+    <span class="token keyword keyword-if">if</span> search_filter<span class="token punctuation">.</span>tags<span class="token punctuation">:</span>
+        tag_score <span class="token operator">=</span> <span class="token builtin">len</span><span class="token punctuation">(</span><span class="token builtin">set</span><span class="token punctuation">(</span>rule<span class="token punctuation">.</span>tags<span class="token punctuation">)</span> <span class="token operator">&amp;</span> <span class="token builtin">set</span><span class="token punctuation">(</span>search_filter<span class="token punctuation">.</span>tags<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">/</span> <span class="token builtin">len</span><span class="token punctuation">(</span>search_filter<span class="token punctuation">.</span>tags<span class="token punctuation">)</span>
+        score <span class="token operator">+=</span> tag_score <span class="token operator">*</span> <span class="token number">0.2</span>
+        
+    <span class="token keyword keyword-return">return</span> <span class="token builtin">min</span><span class="token punctuation">(</span>score<span class="token punctuation">,</span> <span class="token number">1.0</span><span class="token punctuation">)</span>
+</code></pre><h3 id="并发处理机制">并发处理机制 </h3>
+<div class="mermaid">graph LR
+    A[请求队列] --&gt; B[请求分发器]
+    B --&gt; C[工作进程1]
+    B --&gt; D[工作进程2] 
+    B --&gt; E[工作进程N]
+    
+    C --&gt; F[规则引擎实例1]
+    D --&gt; G[规则引擎实例2]
+    E --&gt; H[规则引擎实例N]
+    
+    F --&gt; I[共享数据库]
+    G --&gt; I
+    H --&gt; I
+    
+    F --&gt; J[本地缓存1]
+    G --&gt; K[本地缓存2]
+    H --&gt; L[本地缓存N]
+</div><hr>
+<h2 id="-性能优化策略">📈 性能优化策略 </h2>
+<h3 id="缓存策略">缓存策略 </h3>
+<table>
+<thead>
+<tr>
+<th>缓存层级</th>
+<th>存储对象</th>
+<th>生存时间</th>
+<th>更新策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>L1 - 内存缓存</strong></td>
+<td>规则索引、搜索结果</td>
+<td>1小时</td>
+<td>LRU淘汰</td>
+</tr>
+<tr>
+<td><strong>L2 - Redis缓存</strong></td>
+<td>验证结果、统计数据</td>
+<td>4小时</td>
+<td>TTL过期</td>
+</tr>
+<tr>
+<td><strong>L3 - 文件缓存</strong></td>
+<td>编译结果、模板数据</td>
+<td>24小时</td>
+<td>定时清理</td>
+</tr>
+</tbody>
+</table>
+<h3 id="数据库优化">数据库优化 </h3>
+<pre data-role="codeBlock" data-info="sql" class="language-sql sql"><code><span class="token comment">-- 核心查询索引优化</span>
+<span class="token keyword keyword-CREATE">CREATE</span> <span class="token keyword keyword-INDEX">INDEX</span> idx_rules_language <span class="token keyword keyword-ON">ON</span> rules<span class="token punctuation">(</span>languages<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword keyword-CREATE">CREATE</span> <span class="token keyword keyword-INDEX">INDEX</span> idx_rules_domain <span class="token keyword keyword-ON">ON</span> rules<span class="token punctuation">(</span>domains<span class="token punctuation">)</span><span class="token punctuation">;</span>  
+<span class="token keyword keyword-CREATE">CREATE</span> <span class="token keyword keyword-INDEX">INDEX</span> idx_rules_tags <span class="token keyword keyword-ON">ON</span> rules<span class="token punctuation">(</span>tags<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword keyword-CREATE">CREATE</span> <span class="token keyword keyword-INDEX">INDEX</span> idx_rules_active <span class="token keyword keyword-ON">ON</span> rules<span class="token punctuation">(</span>active<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword keyword-CREATE">CREATE</span> <span class="token keyword keyword-INDEX">INDEX</span> idx_rules_composite <span class="token keyword keyword-ON">ON</span> rules<span class="token punctuation">(</span>rule_type<span class="token punctuation">,</span> active<span class="token punctuation">,</span> usage_count<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre><h3 id="异步处理优化">异步处理优化 </h3>
+<div class="mermaid">sequenceDiagram
+    participant Client as 客户端
+    participant Gateway as API网关
+    participant Worker as 工作进程
+    participant Cache as 缓存
+    participant DB as 数据库
+    
+    Client-&gt;&gt;Gateway: 异步请求
+    Gateway-&gt;&gt;Worker: 任务分发
+    
+    par 并行处理
+        Worker-&gt;&gt;Cache: 检查缓存
+        Worker-&gt;&gt;DB: 数据查询
+    end
+    
+    Worker-&gt;&gt;Worker: 结果聚合
+    Worker-&gt;&gt;Cache: 更新缓存
+    Worker-&gt;&gt;Gateway: 返回结果
+    Gateway-&gt;&gt;Client: 响应数据
+</div><hr>
+<h2 id="-工具与验证器系统">🔧 工具与验证器系统 </h2>
+<h3 id="验证器架构">验证器架构 </h3>
+<div class="mermaid">classDiagram
+    class BaseValidator {
+        &lt;&lt;abstract&gt;&gt;
+        +name: str
+        +language: str
+        +command: str
+        +timeout: int
+        +validate_async(content: str) ToolResult*
+        +_parse_output(output: str) List[ValidationIssue]*
+    }
+    
+    class PythonFlake8Validator {
+        +validate_async(content: str) ToolResult
+        +_parse_output(output: str) List[ValidationIssue]
+        +_create_temp_file(content: str) str
+    }
+    
+    class PythonPylintValidator {
+        +validate_async(content: str) ToolResult
+        +_parse_json_output(output: str) List[ValidationIssue]
+    }
+    
+    class JavaScriptESLintValidator {
+        +validate_async(content: str) ToolResult
+        +_parse_eslint_output(output: str) List[ValidationIssue]
+    }
+    
+    class ValidationManager {
+        +validators: Dict[str, BaseValidator]
+        +register_validator(validator: BaseValidator)
+        +get_validator(language: str) BaseValidator
+        +validate_async(content: str, language: str) ToolResult
+        +validate_parallel(content: str, languages: List[str]) List[ToolResult]
+    }
+    
+    BaseValidator &lt;|-- PythonFlake8Validator
+    BaseValidator &lt;|-- PythonPylintValidator  
+    BaseValidator &lt;|-- JavaScriptESLintValidator
+    ValidationManager --&gt; BaseValidator
+</div><h3 id="支持的验证工具">支持的验证工具 </h3>
+<table>
+<thead>
+<tr>
+<th>语言</th>
+<th>工具</th>
+<th>检查类型</th>
+<th>配置参数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Python</strong></td>
+<td>Flake8</td>
+<td>代码风格、语法错误</td>
+<td><code>--max-line-length=88</code></td>
+</tr>
+<tr>
+<td><strong>Python</strong></td>
+<td>Pylint</td>
+<td>代码质量、复杂度</td>
+<td><code>--disable=C0103,C0114</code></td>
+</tr>
+<tr>
+<td><strong>Python</strong></td>
+<td>Black</td>
+<td>代码格式化检查</td>
+<td><code>--check --diff</code></td>
+</tr>
+<tr>
+<td><strong>Python</strong></td>
+<td>Mypy</td>
+<td>类型检查</td>
+<td><code>--ignore-missing-imports</code></td>
+</tr>
+<tr>
+<td><strong>JavaScript</strong></td>
+<td>ESLint</td>
+<td>语法、风格、最佳实践</td>
+<td><code>--format=json</code></td>
+</tr>
+<tr>
+<td><strong>TypeScript</strong></td>
+<td>TSLint</td>
+<td>TypeScript特定检查</td>
+<td><code>--format=json</code></td>
+</tr>
+<tr>
+<td><strong>C++</strong></td>
+<td>Clang-tidy</td>
+<td>静态分析、现代化建议</td>
+<td><code>-checks=*</code></td>
+</tr>
+<tr>
+<td><strong>Markdown</strong></td>
+<td>Markdownlint</td>
+<td>文档格式、结构</td>
+<td><code>--json</code></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="-部署与运维">🚀 部署与运维 </h2>
+<h3 id="部署架构选项">部署架构选项 </h3>
+<h4 id="单机部署">单机部署 </h4>
+<pre data-role="codeBlock" data-info="yaml" class="language-yaml yaml"><code><span class="token comment"># docker-compose.yml</span>
+<span class="token key atrule">version</span><span class="token punctuation">:</span> <span class="token string">'3.8'</span>
+<span class="token key atrule">services</span><span class="token punctuation">:</span>
+  <span class="token key atrule">cursorrules-mcp</span><span class="token punctuation">:</span>
+    <span class="token key atrule">build</span><span class="token punctuation">:</span> .
+    <span class="token key atrule">ports</span><span class="token punctuation">:</span>
+      <span class="token punctuation">-</span> <span class="token string">"8000:8000"</span>
+    <span class="token key atrule">environment</span><span class="token punctuation">:</span>
+      <span class="token punctuation">-</span> CURSORRULES_WORKERS=4
+      <span class="token punctuation">-</span> CURSORRULES_LOG_LEVEL=INFO
+    <span class="token key atrule">volumes</span><span class="token punctuation">:</span>
+      <span class="token punctuation">-</span> ./data<span class="token punctuation">:</span>/app/data
+      <span class="token punctuation">-</span> ./logs<span class="token punctuation">:</span>/app/logs
+</code></pre><h4 id="集群部署">集群部署 </h4>
+<div class="mermaid">graph TB
+    subgraph "负载均衡层"
+        LB[Nginx/HAProxy]
+    end
+    
+    subgraph "应用层"
+        APP1[CursorRules实例1]
+        APP2[CursorRules实例2]
+        APP3[CursorRules实例3]
+    end
+    
+    subgraph "数据层"
+        DB[(PostgreSQL集群)]
+        CACHE[(Redis集群)]
+        FS[共享文件系统]
+    end
+    
+    LB --&gt; APP1
+    LB --&gt; APP2
+    LB --&gt; APP3
+    
+    APP1 --&gt; DB
+    APP1 --&gt; CACHE
+    APP1 --&gt; FS
+    
+    APP2 --&gt; DB
+    APP2 --&gt; CACHE  
+    APP2 --&gt; FS
+    
+    APP3 --&gt; DB
+    APP3 --&gt; CACHE
+    APP3 --&gt; FS
+</div><h3 id="监控指标">监控指标 </h3>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>指标名称</th>
+<th>阈值</th>
+<th>监控频率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>系统性能</strong></td>
+<td>CPU使用率</td>
+<td>&lt; 80%</td>
+<td>1分钟</td>
+</tr>
+<tr>
+<td><strong>系统性能</strong></td>
+<td>内存使用率</td>
+<td>&lt; 85%</td>
+<td>1分钟</td>
+</tr>
+<tr>
+<td><strong>系统性能</strong></td>
+<td>磁盘使用率</td>
+<td>&lt; 90%</td>
+<td>5分钟</td>
+</tr>
+<tr>
+<td><strong>应用性能</strong></td>
+<td>请求响应时间</td>
+<td>&lt; 2秒</td>
+<td>实时</td>
+</tr>
+<tr>
+<td><strong>应用性能</strong></td>
+<td>请求成功率</td>
+<td>&gt; 99%</td>
+<td>实时</td>
+</tr>
+<tr>
+<td><strong>应用性能</strong></td>
+<td>并发连接数</td>
+<td>&lt; 1000</td>
+<td>1分钟</td>
+</tr>
+<tr>
+<td><strong>业务指标</strong></td>
+<td>规则搜索QPS</td>
+<td>监控</td>
+<td>1分钟</td>
+</tr>
+<tr>
+<td><strong>业务指标</strong></td>
+<td>验证任务成功率</td>
+<td>&gt; 95%</td>
+<td>5分钟</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="-技术发展规划">🔮 技术发展规划 </h2>
+<h3 id="短期目标-v15x---6个月内">短期目标 (v1.5.x - 6个月内) </h3>
+<ul>
+<li><strong>🔍 搜索增强</strong>: 实现向量搜索、语义匹配</li>
+<li><strong>🧠 智能推荐</strong>: 基于使用历史的规则推荐算法</li>
+<li><strong>📊 仪表盘</strong>: Web管理界面与可视化面板</li>
+<li><strong>🔗 集成扩展</strong>: VSCode扩展、GitHub Actions支持</li>
+</ul>
+<h3 id="中期目标-v20x---1年内">中期目标 (v2.0.x - 1年内) </h3>
+<ul>
+<li><strong>🤖 AI驱动</strong>: 集成大语言模型进行规则自动生成</li>
+<li><strong>🌐 多租户</strong>: 支持多团队、多项目隔离</li>
+<li><strong>⚡ 实时协作</strong>: WebSocket实时更新与协作编辑</li>
+<li><strong>📱 移动端</strong>: 移动应用与离线支持</li>
+</ul>
+<h3 id="长期愿景-v30x">长期愿景 (v3.0.x+) </h3>
+<ul>
+<li><strong>🧬 自进化</strong>: 基于反馈的规则库自主学习与优化</li>
+<li><strong>🌍 生态系统</strong>: 开放平台与第三方插件生态</li>
+<li><strong>🔬 领域专精</strong>: 垂直领域（金融、医疗、航空）定制化</li>
+<li><strong>🚀 云原生</strong>: Kubernetes原生支持与无服务器部署</li>
+</ul>
+<hr>
+<h2 id="-技术细节补充">📚 技术细节补充 </h2>
+<h3 id="mcp协议实现细节">MCP协议实现细节 </h3>
+<pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
+  <span class="token property">"jsonrpc"</span><span class="token operator">:</span> <span class="token string">"2.0"</span><span class="token punctuation">,</span>
+  <span class="token property">"method"</span><span class="token operator">:</span> <span class="token string">"tools/call"</span><span class="token punctuation">,</span>
+  <span class="token property">"params"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token property">"name"</span><span class="token operator">:</span> <span class="token string">"search_rules"</span><span class="token punctuation">,</span>
+    <span class="token property">"arguments"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+      <span class="token property">"query"</span><span class="token operator">:</span> <span class="token string">"python naming conventions"</span><span class="token punctuation">,</span>
+      <span class="token property">"languages"</span><span class="token operator">:</span> <span class="token string">"python"</span><span class="token punctuation">,</span>
+      <span class="token property">"limit"</span><span class="token operator">:</span> <span class="token number">10</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"request-123"</span>
+<span class="token punctuation">}</span>
+</code></pre><h3 id="http-api规范">HTTP API规范 </h3>
+<pre data-role="codeBlock" data-info="yaml" class="language-yaml yaml"><code><span class="token key atrule">openapi</span><span class="token punctuation">:</span> 3.0.0
+<span class="token key atrule">info</span><span class="token punctuation">:</span>
+  <span class="token key atrule">title</span><span class="token punctuation">:</span> CursorRules<span class="token punctuation">-</span>MCP API
+  <span class="token key atrule">version</span><span class="token punctuation">:</span> 1.4.0
+<span class="token key atrule">paths</span><span class="token punctuation">:</span>
+  <span class="token key atrule">/mcp/jsonrpc</span><span class="token punctuation">:</span>
+    <span class="token key atrule">post</span><span class="token punctuation">:</span>
+      <span class="token key atrule">summary</span><span class="token punctuation">:</span> MCP JSON<span class="token punctuation">-</span>RPC接口
+      <span class="token key atrule">requestBody</span><span class="token punctuation">:</span>
+        <span class="token key atrule">content</span><span class="token punctuation">:</span>
+          <span class="token key atrule">application/json</span><span class="token punctuation">:</span>
+            <span class="token key atrule">schema</span><span class="token punctuation">:</span>
+              <span class="token key atrule">$ref</span><span class="token punctuation">:</span> <span class="token string">'#/components/schemas/JsonRpcRequest'</span>
+  <span class="token key atrule">/import_rule</span><span class="token punctuation">:</span>
+    <span class="token key atrule">post</span><span class="token punctuation">:</span>
+      <span class="token key atrule">summary</span><span class="token punctuation">:</span> 规则导入接口
+      <span class="token key atrule">requestBody</span><span class="token punctuation">:</span>
+        <span class="token key atrule">content</span><span class="token punctuation">:</span>
+          <span class="token key atrule">application/json</span><span class="token punctuation">:</span>
+            <span class="token key atrule">schema</span><span class="token punctuation">:</span>
+              <span class="token key atrule">$ref</span><span class="token punctuation">:</span> <span class="token string">'#/components/schemas/ImportRuleRequest'</span>
+</code></pre><h3 id="配置管理">配置管理 </h3>
+<p>配置系统采用分层设计，支持环境变量覆盖和动态重载：</p>
+<pre data-role="codeBlock" data-info="python" class="language-python python"><code><span class="token comment"># 配置优先级: 环境变量 &gt; 配置文件 &gt; 默认值</span>
+<span class="token decorator annotation punctuation">@dataclass</span>
+<span class="token keyword keyword-class">class</span> <span class="token class-name">CursorRulesConfig</span><span class="token punctuation">:</span>
+    rules_dir<span class="token punctuation">:</span> <span class="token builtin">str</span> <span class="token operator">=</span> field<span class="token punctuation">(</span>default<span class="token operator">=</span><span class="token string">"data/rules"</span><span class="token punctuation">)</span>
+    server_host<span class="token punctuation">:</span> <span class="token builtin">str</span> <span class="token operator">=</span> field<span class="token punctuation">(</span>default<span class="token operator">=</span><span class="token string">"localhost"</span><span class="token punctuation">)</span> 
+    server_port<span class="token punctuation">:</span> <span class="token builtin">int</span> <span class="token operator">=</span> field<span class="token punctuation">(</span>default<span class="token operator">=</span><span class="token number">8000</span><span class="token punctuation">)</span>
+    
+    <span class="token keyword keyword-def">def</span> <span class="token function">__post_init__</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token comment"># 环境变量覆盖</span>
+        self<span class="token punctuation">.</span>rules_dir <span class="token operator">=</span> os<span class="token punctuation">.</span>getenv<span class="token punctuation">(</span><span class="token string">"CURSORRULES_RULES_DIR"</span><span class="token punctuation">,</span> self<span class="token punctuation">.</span>rules_dir<span class="token punctuation">)</span>
+        self<span class="token punctuation">.</span>server_port <span class="token operator">=</span> <span class="token builtin">int</span><span class="token punctuation">(</span>os<span class="token punctuation">.</span>getenv<span class="token punctuation">(</span><span class="token string">"CURSORRULES_PORT"</span><span class="token punctuation">,</span> self<span class="token punctuation">.</span>server_port<span class="token punctuation">)</span><span class="token punctuation">)</span>
+</code></pre><hr>
+<h2 id="-总结">✅ 总结 </h2>
+<p>CursorRules-MCP通过现代化的架构设计和技术选型，实现了一个高性能、可扩展的智能规则管理系统。项目在以下方面具有显著优势：</p>
+<h3 id="-核心优势">🎯 核心优势 </h3>
+<ol>
+<li><strong>多协议支持</strong> - MCP、HTTP、CLI三位一体的接口设计</li>
+<li><strong>异步优先</strong> - 全链路异步处理提升并发性能</li>
+<li><strong>智能匹配</strong> - 多维度评分算法确保规则匹配准确性</li>
+<li><strong>扩展性强</strong> - 插件化验证器与模块化设计</li>
+<li><strong>运维友好</strong> - 完善的监控、日志与配置管理</li>
+</ol>
+<h3 id="-技术亮点">🔧 技术亮点 </h3>
+<ul>
+<li><strong>现代Python栈</strong>: FastAPI + Pydantic + SQLAlchemy的最佳实践组合</li>
+<li><strong>协议桥接</strong>: MCP与HTTP协议的无缝适配</li>
+<li><strong>并发处理</strong>: 多进程+异步IO的高并发架构</li>
+<li><strong>缓存策略</strong>: 多级缓存提升系统响应速度</li>
+<li><strong>类型安全</strong>: 完整的类型注解与运行时验证</li>
+</ul>
+<p>项目为LLM应用生态提供了强大的代码质量控制基础设施，在规则管理、内容验证、提示增强等方面建立了行业标准，具有广阔的应用前景和技术价值。</p>
+<hr>
+<p><strong>文档版本</strong>: v1.4.0<br>
+<strong>最后更新</strong>: 2025-01-23<br>
+<strong>维护团队</strong>: CursorRules-MCP开发组</p>
+
+      </div>
+      
+      
+    
+    
+    <script type="module">
+// TODO: If ZenUML gets integrated into mermaid in the future,
+//      we can remove the following lines.
+
+
+var MERMAID_CONFIG = ({"startOnLoad":false});
+if (typeof MERMAID_CONFIG !== 'undefined') {
+  MERMAID_CONFIG.startOnLoad = false
+  MERMAID_CONFIG.cloneCssStyles = false
+  MERMAID_CONFIG.theme = "default"
+}
+
+mermaid.initialize(MERMAID_CONFIG || {})
+if (typeof(window['Reveal']) !== 'undefined') {
+  function mermaidRevealHelper(event) {
+    var currentSlide = event.currentSlide
+    var diagrams = currentSlide.querySelectorAll('.mermaid')
+    for (var i = 0; i < diagrams.length; i++) {
+      var diagram = diagrams[i]
+      if (!diagram.hasAttribute('data-processed')) {
+        mermaid.init(null, diagram, ()=> {
+          Reveal.slide(event.indexh, event.indexv)
+        })
+      }
+    }
+  }
+  Reveal.addEventListener('slidetransitionend', mermaidRevealHelper)
+  Reveal.addEventListener('ready', mermaidRevealHelper)
+  await mermaid.run({
+    nodes: document.querySelectorAll('.mermaid')
+  })
+} else {
+  await mermaid.run({
+    nodes: document.querySelectorAll('.mermaid')
+  })
+}
+</script>
+    
+    
+    
+  
+    </body></html>

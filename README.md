@@ -1,41 +1,98 @@
 # CursorRules-MCP
 
-一个基于 Model Context Protocol (MCP) 的智能编程规则与提示模板管理系统，支持多格式规则/模板导入、内容合规性校验、统计分析与多接口集成。
+🎯 **智能编程规则与提示模板管理系统** - 基于 Model Context Protocol (MCP) 的下一代代码质量控制平台
 
-## 🚀 功能特性
-- 🔍 智能规则与模板搜索与管理
-- 📥 多格式导入（Markdown、YAML、JSON）
-- 📚 规则与模板库版本管理、冲突检测
-- 🔧 代码与文档内容合规性校验（支持多语言、多领域）
-- 🚀 MCP/HTTP/CLI 多端接口
-- 🎯 上下文自适应提示增强
-- 📊 规则与模板使用统计分析
+一个专业的规则管理与内容验证系统，支持多格式规则/模板导入、智能合规性校验、统计分析与多接口集成，为现代软件开发提供标准化的代码质量保证。
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.68.0+-00a393.svg)](https://fastapi.tiangolo.com)
+[![MCP Protocol](https://img.shields.io/badge/MCP-2024--11--05-green.svg)](https://modelcontextprotocol.io)
+
+## 🚀 核心功能
+
+### 📋 规则与模板管理
+- 🔍 **智能搜索引擎** - 支持多维度过滤（语言、领域、标签、类型）
+- 📥 **多格式导入** - Markdown、YAML、JSON格式无缝支持
+- 📚 **版本控制** - 规则版本管理、冲突检测与自动合并
+- 🏷️ **分类体系** - 按语言、领域、任务类型智能分类
+
+### 🔧 内容验证与校验
+- ✅ **多语言支持** - Python、C++、JavaScript、TypeScript等
+- 🌍 **领域自适应** - 科学计算、Web开发、移动开发等专业领域
+- 🎯 **智能校验** - 代码风格、安全性、性能、可维护性全方位检查
+- 📊 **详细报告** - 问题定位、严重程度评估、改进建议
+
+### 🚀 多端接口支持
+- 🔌 **MCP协议** - 标准Model Context Protocol集成
+- 🌐 **HTTP/REST API** - RESTful风格Web接口
+- 💻 **CLI工具** - 命令行批量操作与脚本集成
+- 📡 **JSON-RPC** - 轻量级远程过程调用
+
+### 🎯 智能增强功能
+- 🤖 **提示增强** - 基于上下文的LLM提示词优化
+- 📈 **统计分析** - 使用模式分析与性能监控
+- 🧠 **自适应学习** - 根据使用反馈持续优化规则库
 
 ## 🛠️ 快速开始
 
-### 安装
+### 系统要求
+- Python 3.9+
+- FastAPI 0.68.0+
+- SQLAlchemy 1.4+
+- Pydantic 1.8+
+
+### 安装部署
+
 ```bash
-# 克隆项目
-git clone <repository-url>
+# 1. 克隆项目
+git clone https://github.com/your-org/cursorrules-mcp.git
 cd cursorrules-mcp
 
-# 安装依赖
+# 2. 创建虚拟环境
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# 或 venv\Scripts\activate  # Windows
+
+# 3. 安装依赖
 pip install -e .
+
+# 4. 初始化配置
+cp configs/cursorrules.yaml.example configs/cursorrules.yaml
+# 编辑配置文件以适应您的环境
+
+# 5. 初始化数据库
+python scripts/migrate_database.py
 ```
 
-### 启动服务
-#### 方式一：MCP服务（推荐）
+### 服务启动
+
+#### 🔌 MCP服务（推荐 - 适合与LLM工具链集成）
 ```bash
+# 启动MCP服务器
+python scripts/start_mcp.py
+
+# 或配置环境变量启动
+export CURSORRULES_RULES_DIR="data/rules"
+export CURSORRULES_LOG_LEVEL="INFO"
 python scripts/start_mcp.py
 ```
-#### 方式二：HTTP服务
+
+#### 🌐 HTTP服务（适合Web API集成）
 ```bash
-python scripts/start_http_server.py --port 8000
+# 启动HTTP服务器
+python scripts/start_http_server.py --port 8000 --workers 4
+
+# 后台运行
+nohup python scripts/start_http_server.py --port 8000 > server.log 2>&1 &
 ```
 
-### CLI 工具
+#### 💻 CLI工具（适合批量操作与脚本集成）
 ```bash
 # 查看帮助
+python scripts/cursorrules_cli.py --help
+
+# 或安装后使用
 cursorrules-mcp --help
 ```
 
@@ -237,10 +294,18 @@ cursorrules-mcp stats
 ```
 
 ## 📚 文档与支持
-- [导入功能指南](docs/IMPORT_GUIDE.md)
-- [导入和统计功能详细指南](docs/IMPORT_AND_STATISTICS_GUIDE.md)
-- [HTTP服务器指南](docs/HTTP_SERVER_GUIDE.md)
-- [开发计划](docs/development_plan.md)
+
+### 核心文档
+- 📖 **[技术架构报告](docs/techs.md)** - 完整的技术架构、设计模式与实现细节
+- 📥 **[导入功能指南](docs/IMPORT_GUIDE.md)** - 规则与模板导入详细说明
+- 📊 **[统计功能指南](docs/IMPORT_AND_STATISTICS_GUIDE.md)** - 数据分析与统计功能
+- 🌐 **[HTTP服务器指南](docs/HTTP_SERVER_GUIDE.md)** - Web API接口使用说明
+- 🚀 **[开发计划](docs/development_plan.md)** - 项目路线图与发展规划
+
+### 技术支持
+- 🐛 **问题报告**: [GitHub Issues](https://github.com/your-org/cursorrules-mcp/issues)
+- 💬 **社区讨论**: [GitHub Discussions](https://github.com/your-org/cursorrules-mcp/discussions)
+- 📧 **联系方式**: Mapoet.Niphy@gmail.com
 
 ## 🔍 故障排除
 
@@ -252,17 +317,27 @@ cursorrules-mcp stats
 
 ## 🚀 版本历史
 
-### v1.3.0 (2025-06-09)
+### v1.4.0 (2025-01-23) - 当前版本
+- 🔧 **架构重构** - 完整的MCP与HTTP双服务器架构
+- 🛠️ **导入功能完善** - 修复所有导入相关错误，支持异步操作
+- 🎯 **输出模式优化** - validate_content支持5种输出模式精确控制
+- 📊 **统计功能增强** - 规则与模板分离统计，多维度分析
+- 🔐 **错误处理完善** - 全链路异常处理与日志记录
+- 🚀 **性能优化** - 异步数据库操作，并发处理能力提升
+
+### v1.3.0 (2025-01-09)
 - ✅ validate_content 支持 output_mode 枚举参数，输出内容灵活可控
 - ✅ 规则/模板导入统一，支持 type 区分
 - ✅ CLI/HTTP/MCP 接口参数与文档全面升级
 
-### v1.2.0
-- 多格式规则导入、统计增强
-### v1.1.0
+### v1.2.0 (2024-12-15)
+- 多格式规则导入、统计增强、版本管理系统
+
+### v1.1.0 (2024-11-20)
 - HTTP服务器、规则验证、统计分析
-### v1.0.0
-- MCP协议、规则搜索、CLI工具
+
+### v1.0.0 (2024-10-15)
+- MCP协议基础实现、规则搜索、CLI工具
 
 ## 🤝 贡献
 欢迎贡献代码、报告问题或提出建议！
@@ -285,7 +360,37 @@ MIT License - 详见 [LICENSE](LICENSE)
 
 ⭐ 如果这个项目对您有帮助，请给我们一个星标！
 
-## 📁 目录结构与配置
+## 📁 项目结构
 
-- `data/rules/` 及其子目录：专门存放规则文件（YAML/JSON/MD等）
-- `data/templates/`：专门存放 prompt 模板文件（YAML/MD等）
+```
+cursorrules-mcp/
+├── src/cursorrules_mcp/          # 核心业务逻辑
+│   ├── engine.py                 # 规则引擎核心
+│   ├── server.py                 # MCP协议服务器  
+│   ├── http_server.py            # HTTP/REST API服务器
+│   ├── models.py                 # 数据模型定义
+│   ├── database.py               # 数据访问层
+│   ├── validators.py             # 验证器系统
+│   ├── rule_import.py            # 规则导入模块
+│   └── cli.py                    # 命令行接口
+├── scripts/                      # 启动脚本
+│   ├── start_mcp.py              # MCP服务启动
+│   ├── start_http_server.py      # HTTP服务启动
+│   └── cursorrules_cli.py        # CLI工具入口
+├── data/                         # 数据存储
+│   ├── rules/                    # 规则文件存储
+│   └── templates/                # 提示模板存储
+├── configs/                      # 配置文件
+│   └── cursorrules.yaml          # 主配置文件
+├── docs/                         # 文档
+│   ├── techs.md                  # 技术架构报告
+│   └── *.md                      # 其他文档
+└── tests/                        # 测试用例
+```
+
+### 🔧 配置说明
+
+- **data/rules/**: 存放规则文件（YAML/JSON/MD格式）
+- **data/templates/**: 存放 prompt 模板文件
+- **configs/cursorrules.yaml**: 系统主配置文件
+- **logs/**: 运行日志存储目录（自动创建）
