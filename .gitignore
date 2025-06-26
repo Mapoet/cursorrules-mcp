@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+.serena/
+
+docs/requirements.txt
+
 # Distribution / packaging
 .Python
 build/
