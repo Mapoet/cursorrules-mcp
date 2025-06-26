@@ -8,7 +8,7 @@ __pycache__/
 
 .serena/
 
-docs/requirements.txt
+./requirement.txt
 
 # Distribution / packaging
 .Python
