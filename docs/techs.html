@@ -311,38 +311,120 @@
     API--&gt;&gt;Client: 返回验证报告
 </div><h3 id="规则导入数据流">规则导入数据流 </h3>
 <div class="mermaid">flowchart TD
-    A[导入请求] --&gt; B{数据源类型}
+    A[导入请求] --&gt; B{资源类型}
     
-    B --&gt;|文件路径| C[读取文件内容]
-    B --&gt;|直接内容| D[解析内容格式]
+    B --&gt;|规则| C[UnifiedRuleImporter]
+    B --&gt;|模板| D[RuleEngine.load_prompt_templates]
     
-    C --&gt; D
-    D --&gt; E{格式类型}
+    C --&gt; E[解析文件格式]
+    D --&gt; F[解析模板文件]
     
-    E --&gt;|Markdown| F[MarkdownRuleParser]
-    E --&gt;|YAML| G[YamlRuleParser]
-    E --&gt;|JSON| H[JsonRuleParser]
+    E --&gt; G{格式类型}
+    F --&gt; H{格式类型}
     
-    F --&gt; I[解析规则结构]
-    G --&gt; I
-    H --&gt; I
+    G --&gt;|Markdown| I[MarkdownRuleParser]
+    G --&gt;|YAML| J[YamlRuleParser]
+    G --&gt;|JSON| K[JsonRuleParser]
     
-    I --&gt; J[验证规则完整性]
-    J --&gt; K{验证通过?}
+    H --&gt;|Markdown| L[解析Markdown模板]
+    H --&gt;|YAML| M[解析YAML模板]
     
-    K --&gt;|是| L[检查重复ID]
-    K --&gt;|否| M[返回错误信息]
+    I --&gt; N[解析规则结构]
+    J --&gt; N
+    K --&gt; N
     
-    L --&gt; N{ID冲突?}
-    N --&gt;|是,merge=true| O[合并规则]
-    N --&gt;|是,merge=false| P[报告冲突]
-    N --&gt;|否| Q[保存到数据库]
+    L --&gt; O[创建PromptTemplate]
+    M --&gt; O
     
-    O --&gt; Q
-    Q --&gt; R[更新索引]
-    R --&gt; S[返回成功结果]
+    N --&gt; P[验证规则完整性]
+    O --&gt; Q[验证模板完整性]
     
-    P --&gt; M
+    P --&gt; R{验证通过?}
+    Q --&gt; S{验证通过?}
+    
+    R --&gt;|是| T[检查规则ID冲突]
+    S --&gt;|是| U[检查模板ID冲突]
+    
+    R --&gt;|否| V[返回错误信息]
+    S --&gt;|否| V
+    
+    T --&gt; W{ID冲突?}
+    U --&gt; X{ID冲突?}
+    
+    W --&gt;|是,merge=true| Y[合并规则]
+    W --&gt;|是,merge=false| V
+    W --&gt;|否| Z[保存到数据库]
+    
+    X --&gt;|是,mode=append| AA[追加模板]
+    X --&gt;|是,mode=replace| BB[替换模板]
+    X --&gt;|否| CC[添加新模板]
+    
+    Y --&gt; Z
+    AA --&gt; DD[更新模板索引]
+    BB --&gt; DD
+    CC --&gt; DD
+    
+    Z --&gt; EE[更新规则索引]
+    DD --&gt; FF[返回成功结果]
+    EE --&gt; FF
+</div><h3 id="提示增强数据流">提示增强数据流 </h3>
+<div class="mermaid">sequenceDiagram
+    participant Client as 客户端
+    participant API as API层
+    participant Engine as 规则引擎
+    participant DB as 规则数据库
+    participant Template as 模板系统
+    
+    Client-&gt;&gt;API: 增强请求 (base_prompt, context)
+    API-&gt;&gt;Engine: enhance_prompt()
+    
+    par 规则搜索
+        Engine-&gt;&gt;DB: 搜索相关规则
+        DB--&gt;&gt;Engine: 返回规则列表
+    and 模板匹配
+        Engine-&gt;&gt;Template: 获取适用模板
+        Template--&gt;&gt;Engine: 返回模板列表
+    end
+    
+    Engine-&gt;&gt;Engine: 规则排序与筛选
+    Engine-&gt;&gt;Engine: 规则注入处理
+    Engine-&gt;&gt;Template: 应用模板渲染
+    Template--&gt;&gt;Engine: 返回增强结果
+    
+    Engine--&gt;&gt;API: 返回增强后的提示
+    API--&gt;&gt;Client: 格式化响应
+</div><h3 id="统计分析数据流">统计分析数据流 </h3>
+<div class="mermaid">sequenceDiagram
+    participant Client as 客户端
+    participant API as API层
+    participant Engine as 规则引擎
+    participant DB as 规则数据库
+    participant Cache as 缓存系统
+    
+    Client-&gt;&gt;API: 统计请求 (resource_type, filters)
+    API-&gt;&gt;Engine: get_statistics()
+    
+    Engine-&gt;&gt;Cache: 检查统计缓存
+    
+    alt 缓存命中
+        Cache--&gt;&gt;Engine: 返回缓存结果
+    else 缓存未命中
+        Engine-&gt;&gt;DB: 查询规则数据
+        DB--&gt;&gt;Engine: 返回规则集合
+        
+        par 多维度统计
+            Engine-&gt;&gt;Engine: 语言分布统计
+            Engine-&gt;&gt;Engine: 领域分布统计
+            Engine-&gt;&gt;Engine: 标签使用统计
+            Engine-&gt;&gt;Engine: 使用情况分析
+        end
+        
+        Engine-&gt;&gt;Engine: 合并统计结果
+        Engine-&gt;&gt;Cache: 更新统计缓存
+    end
+    
+    Engine--&gt;&gt;API: 返回统计报告
+    API--&gt;&gt;Client: 格式化响应
 </div><hr>
 <h2 id="️-类设计框架">🏛️ 类设计框架 </h2>
 <h3 id="核心模型设计">核心模型设计 </h3>
@@ -366,6 +448,19 @@
         +active: bool
         +usage_count: int
         +success_rate: float
+    }
+    
+    class PromptTemplate {
+        +template_id: str
+        +name: str
+        +template: str
+        +domains: List[str]
+        +languages: List[str]
+        +content_types: List[str]
+        +description: str
+        +priority: int
+        +source: str
+        +render(rules: str, content: str): str
     }
     
     class RuleCondition {
@@ -453,6 +548,23 @@
 </ol>
 <h3 id="数据访问层设计">数据访问层设计 </h3>
 <div class="mermaid">classDiagram
+    class RuleEngine {
+        +rules_dir: str
+        +templates_dir: str
+        +rules: Dict[str, CursorRule]
+        +prompt_templates: Dict[str, PromptTemplate]
+        +database: RuleDatabase
+        +validation_tools: Dict[str, List[str]]
+        
+        +initialize() async
+        +load_rules() async
+        +load_prompt_templates(files: List[str], mode: str)
+        +search_rules(filter: SearchFilter) async
+        +validate_content(content: str, context: MCPContext) async
+        +enhance_prompt(prompt: str, context: MCPContext) async
+        +get_statistics(resource_type: str) dict
+    }
+    
     class RuleDatabase {
         +data_dir: str
         +rules: Dict[str, CursorRule]
@@ -480,135 +592,9 @@
         +merge_rules(base: CursorRule, incoming: CursorRule) CursorRule
     }
     
+    RuleEngine --&gt; RuleDatabase
     RuleDatabase --&gt; RuleVersionManager
     RuleDatabase --&gt; RuleConflictDetector
-</div><hr>
-<h2 id="-核心工作流程">🔄 核心工作流程 </h2>
-<h3 id="系统初始化流程">系统初始化流程 </h3>
-<div class="mermaid">flowchart TD
-    A[系统启动] --&gt; B[加载配置文件]
-    B --&gt; C[初始化日志系统]
-    C --&gt; D[创建数据库连接]
-    D --&gt; E[加载规则引擎]
-    E --&gt; F[构建规则索引]
-    F --&gt; G[初始化验证器]
-    G --&gt; H[加载提示模板]
-    H --&gt; I[启动服务监听]
-    I --&gt; J[系统就绪]
-    
-    style A fill:#e1f5fe
-    style J fill:#c8e6c9
-    style F fill:#fff3e0
-    style G fill:#fff3e0
-</div><h3 id="规则匹配算法">规则匹配算法 </h3>
-<p>系统采用多维度评分算法进行规则匹配，确保返回最相关的规则集合：</p>
-<pre data-role="codeBlock" data-info="python" class="language-python python"><code><span class="token keyword keyword-def">def</span> <span class="token function">_calculate_rule_score</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> rule<span class="token punctuation">:</span> CursorRule<span class="token punctuation">,</span> search_filter<span class="token punctuation">:</span> SearchFilter<span class="token punctuation">)</span> <span class="token operator">-</span><span class="token operator">&gt;</span> <span class="token builtin">float</span><span class="token punctuation">:</span>
-    <span class="token triple-quoted-string string">"""
-    多维度规则评分算法
-    
-    评分维度：
-    1. 语言匹配度 (权重: 0.3)
-    2. 领域匹配度 (权重: 0.25)  
-    3. 标签匹配度 (权重: 0.2)
-    4. 内容类型匹配度 (权重: 0.15)
-    5. 查询相关度 (权重: 0.1)
-    """</span>
-    score <span class="token operator">=</span> <span class="token number">0.0</span>
-    
-    <span class="token comment"># 语言匹配评分</span>
-    <span class="token keyword keyword-if">if</span> search_filter<span class="token punctuation">.</span>languages<span class="token punctuation">:</span>
-        language_score <span class="token operator">=</span> <span class="token builtin">len</span><span class="token punctuation">(</span><span class="token builtin">set</span><span class="token punctuation">(</span>rule<span class="token punctuation">.</span>languages<span class="token punctuation">)</span> <span class="token operator">&amp;</span> <span class="token builtin">set</span><span class="token punctuation">(</span>search_filter<span class="token punctuation">.</span>languages<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">/</span> <span class="token builtin">len</span><span class="token punctuation">(</span>search_filter<span class="token punctuation">.</span>languages<span class="token punctuation">)</span>
-        score <span class="token operator">+=</span> language_score <span class="token operator">*</span> <span class="token number">0.3</span>
-    
-    <span class="token comment"># 领域匹配评分  </span>
-    <span class="token keyword keyword-if">if</span> search_filter<span class="token punctuation">.</span>domains<span class="token punctuation">:</span>
-        domain_score <span class="token operator">=</span> <span class="token builtin">len</span><span class="token punctuation">(</span><span class="token builtin">set</span><span class="token punctuation">(</span>rule<span class="token punctuation">.</span>domains<span class="token punctuation">)</span> <span class="token operator">&amp;</span> <span class="token builtin">set</span><span class="token punctuation">(</span>search_filter<span class="token punctuation">.</span>domains<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">/</span> <span class="token builtin">len</span><span class="token punctuation">(</span>search_filter<span class="token punctuation">.</span>domains<span class="token punctuation">)</span>
-        score <span class="token operator">+=</span> domain_score <span class="token operator">*</span> <span class="token number">0.25</span>
-        
-    <span class="token comment"># 标签匹配评分</span>
-    <span class="token keyword keyword-if">if</span> search_filter<span class="token punctuation">.</span>tags<span class="token punctuation">:</span>
-        tag_score <span class="token operator">=</span> <span class="token builtin">len</span><span class="token punctuation">(</span><span class="token builtin">set</span><span class="token punctuation">(</span>rule<span class="token punctuation">.</span>tags<span class="token punctuation">)</span> <span class="token operator">&amp;</span> <span class="token builtin">set</span><span class="token punctuation">(</span>search_filter<span class="token punctuation">.</span>tags<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">/</span> <span class="token builtin">len</span><span class="token punctuation">(</span>search_filter<span class="token punctuation">.</span>tags<span class="token punctuation">)</span>
-        score <span class="token operator">+=</span> tag_score <span class="token operator">*</span> <span class="token number">0.2</span>
-        
-    <span class="token keyword keyword-return">return</span> <span class="token builtin">min</span><span class="token punctuation">(</span>score<span class="token punctuation">,</span> <span class="token number">1.0</span><span class="token punctuation">)</span>
-</code></pre><h3 id="并发处理机制">并发处理机制 </h3>
-<div class="mermaid">graph LR
-    A[请求队列] --&gt; B[请求分发器]
-    B --&gt; C[工作进程1]
-    B --&gt; D[工作进程2] 
-    B --&gt; E[工作进程N]
-    
-    C --&gt; F[规则引擎实例1]
-    D --&gt; G[规则引擎实例2]
-    E --&gt; H[规则引擎实例N]
-    
-    F --&gt; I[共享数据库]
-    G --&gt; I
-    H --&gt; I
-    
-    F --&gt; J[本地缓存1]
-    G --&gt; K[本地缓存2]
-    H --&gt; L[本地缓存N]
-</div><hr>
-<h2 id="-性能优化策略">📈 性能优化策略 </h2>
-<h3 id="缓存策略">缓存策略 </h3>
-<table>
-<thead>
-<tr>
-<th>缓存层级</th>
-<th>存储对象</th>
-<th>生存时间</th>
-<th>更新策略</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>L1 - 内存缓存</strong></td>
-<td>规则索引、搜索结果</td>
-<td>1小时</td>
-<td>LRU淘汰</td>
-</tr>
-<tr>
-<td><strong>L2 - Redis缓存</strong></td>
-<td>验证结果、统计数据</td>
-<td>4小时</td>
-<td>TTL过期</td>
-</tr>
-<tr>
-<td><strong>L3 - 文件缓存</strong></td>
-<td>编译结果、模板数据</td>
-<td>24小时</td>
-<td>定时清理</td>
-</tr>
-</tbody>
-</table>
-<h3 id="数据库优化">数据库优化 </h3>
-<pre data-role="codeBlock" data-info="sql" class="language-sql sql"><code><span class="token comment">-- 核心查询索引优化</span>
-<span class="token keyword keyword-CREATE">CREATE</span> <span class="token keyword keyword-INDEX">INDEX</span> idx_rules_language <span class="token keyword keyword-ON">ON</span> rules<span class="token punctuation">(</span>languages<span class="token punctuation">)</span><span class="token punctuation">;</span>
-<span class="token keyword keyword-CREATE">CREATE</span> <span class="token keyword keyword-INDEX">INDEX</span> idx_rules_domain <span class="token keyword keyword-ON">ON</span> rules<span class="token punctuation">(</span>domains<span class="token punctuation">)</span><span class="token punctuation">;</span>  
-<span class="token keyword keyword-CREATE">CREATE</span> <span class="token keyword keyword-INDEX">INDEX</span> idx_rules_tags <span class="token keyword keyword-ON">ON</span> rules<span class="token punctuation">(</span>tags<span class="token punctuation">)</span><span class="token punctuation">;</span>
-<span class="token keyword keyword-CREATE">CREATE</span> <span class="token keyword keyword-INDEX">INDEX</span> idx_rules_active <span class="token keyword keyword-ON">ON</span> rules<span class="token punctuation">(</span>active<span class="token punctuation">)</span><span class="token punctuation">;</span>
-<span class="token keyword keyword-CREATE">CREATE</span> <span class="token keyword keyword-INDEX">INDEX</span> idx_rules_composite <span class="token keyword keyword-ON">ON</span> rules<span class="token punctuation">(</span>rule_type<span class="token punctuation">,</span> active<span class="token punctuation">,</span> usage_count<span class="token punctuation">)</span><span class="token punctuation">;</span>
-</code></pre><h3 id="异步处理优化">异步处理优化 </h3>
-<div class="mermaid">sequenceDiagram
-    participant Client as 客户端
-    participant Gateway as API网关
-    participant Worker as 工作进程
-    participant Cache as 缓存
-    participant DB as 数据库
-    
-    Client-&gt;&gt;Gateway: 异步请求
-    Gateway-&gt;&gt;Worker: 任务分发
-    
-    par 并行处理
-        Worker-&gt;&gt;Cache: 检查缓存
-        Worker-&gt;&gt;DB: 数据查询
-    end
-    
-    Worker-&gt;&gt;Worker: 结果聚合
-    Worker-&gt;&gt;Cache: 更新缓存
-    Worker-&gt;&gt;Gateway: 返回结果
-    Gateway-&gt;&gt;Client: 响应数据
 </div><hr>
 <h2 id="-工具与验证器系统">🔧 工具与验证器系统 </h2>
 <h3 id="验证器架构">验证器架构 </h3>
@@ -713,140 +699,6 @@
 </tbody>
 </table>
 <hr>
-<h2 id="-部署与运维">🚀 部署与运维 </h2>
-<h3 id="部署架构选项">部署架构选项 </h3>
-<h4 id="单机部署">单机部署 </h4>
-<pre data-role="codeBlock" data-info="yaml" class="language-yaml yaml"><code><span class="token comment"># docker-compose.yml</span>
-<span class="token key atrule">version</span><span class="token punctuation">:</span> <span class="token string">'3.8'</span>
-<span class="token key atrule">services</span><span class="token punctuation">:</span>
-  <span class="token key atrule">cursorrules-mcp</span><span class="token punctuation">:</span>
-    <span class="token key atrule">build</span><span class="token punctuation">:</span> .
-    <span class="token key atrule">ports</span><span class="token punctuation">:</span>
-      <span class="token punctuation">-</span> <span class="token string">"8000:8000"</span>
-    <span class="token key atrule">environment</span><span class="token punctuation">:</span>
-      <span class="token punctuation">-</span> CURSORRULES_WORKERS=4
-      <span class="token punctuation">-</span> CURSORRULES_LOG_LEVEL=INFO
-    <span class="token key atrule">volumes</span><span class="token punctuation">:</span>
-      <span class="token punctuation">-</span> ./data<span class="token punctuation">:</span>/app/data
-      <span class="token punctuation">-</span> ./logs<span class="token punctuation">:</span>/app/logs
-</code></pre><h4 id="集群部署">集群部署 </h4>
-<div class="mermaid">graph TB
-    subgraph "负载均衡层"
-        LB[Nginx/HAProxy]
-    end
-    
-    subgraph "应用层"
-        APP1[CursorRules实例1]
-        APP2[CursorRules实例2]
-        APP3[CursorRules实例3]
-    end
-    
-    subgraph "数据层"
-        DB[(PostgreSQL集群)]
-        CACHE[(Redis集群)]
-        FS[共享文件系统]
-    end
-    
-    LB --&gt; APP1
-    LB --&gt; APP2
-    LB --&gt; APP3
-    
-    APP1 --&gt; DB
-    APP1 --&gt; CACHE
-    APP1 --&gt; FS
-    
-    APP2 --&gt; DB
-    APP2 --&gt; CACHE  
-    APP2 --&gt; FS
-    
-    APP3 --&gt; DB
-    APP3 --&gt; CACHE
-    APP3 --&gt; FS
-</div><h3 id="监控指标">监控指标 </h3>
-<table>
-<thead>
-<tr>
-<th>类别</th>
-<th>指标名称</th>
-<th>阈值</th>
-<th>监控频率</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>系统性能</strong></td>
-<td>CPU使用率</td>
-<td>&lt; 80%</td>
-<td>1分钟</td>
-</tr>
-<tr>
-<td><strong>系统性能</strong></td>
-<td>内存使用率</td>
-<td>&lt; 85%</td>
-<td>1分钟</td>
-</tr>
-<tr>
-<td><strong>系统性能</strong></td>
-<td>磁盘使用率</td>
-<td>&lt; 90%</td>
-<td>5分钟</td>
-</tr>
-<tr>
-<td><strong>应用性能</strong></td>
-<td>请求响应时间</td>
-<td>&lt; 2秒</td>
-<td>实时</td>
-</tr>
-<tr>
-<td><strong>应用性能</strong></td>
-<td>请求成功率</td>
-<td>&gt; 99%</td>
-<td>实时</td>
-</tr>
-<tr>
-<td><strong>应用性能</strong></td>
-<td>并发连接数</td>
-<td>&lt; 1000</td>
-<td>1分钟</td>
-</tr>
-<tr>
-<td><strong>业务指标</strong></td>
-<td>规则搜索QPS</td>
-<td>监控</td>
-<td>1分钟</td>
-</tr>
-<tr>
-<td><strong>业务指标</strong></td>
-<td>验证任务成功率</td>
-<td>&gt; 95%</td>
-<td>5分钟</td>
-</tr>
-</tbody>
-</table>
-<hr>
-<h2 id="-技术发展规划">🔮 技术发展规划 </h2>
-<h3 id="短期目标-v15x---6个月内">短期目标 (v1.5.x - 6个月内) </h3>
-<ul>
-<li><strong>🔍 搜索增强</strong>: 实现向量搜索、语义匹配</li>
-<li><strong>🧠 智能推荐</strong>: 基于使用历史的规则推荐算法</li>
-<li><strong>📊 仪表盘</strong>: Web管理界面与可视化面板</li>
-<li><strong>🔗 集成扩展</strong>: VSCode扩展、GitHub Actions支持</li>
-</ul>
-<h3 id="中期目标-v20x---1年内">中期目标 (v2.0.x - 1年内) </h3>
-<ul>
-<li><strong>🤖 AI驱动</strong>: 集成大语言模型进行规则自动生成</li>
-<li><strong>🌐 多租户</strong>: 支持多团队、多项目隔离</li>
-<li><strong>⚡ 实时协作</strong>: WebSocket实时更新与协作编辑</li>
-<li><strong>📱 移动端</strong>: 移动应用与离线支持</li>
-</ul>
-<h3 id="长期愿景-v30x">长期愿景 (v3.0.x+) </h3>
-<ul>
-<li><strong>🧬 自进化</strong>: 基于反馈的规则库自主学习与优化</li>
-<li><strong>🌍 生态系统</strong>: 开放平台与第三方插件生态</li>
-<li><strong>🔬 领域专精</strong>: 垂直领域（金融、医疗、航空）定制化</li>
-<li><strong>🚀 云原生</strong>: Kubernetes原生支持与无服务器部署</li>
-</ul>
-<hr>
 <h2 id="-技术细节补充">📚 技术细节补充 </h2>
 <h3 id="mcp协议实现细节">MCP协议实现细节 </h3>
 <pre data-role="codeBlock" data-info="json" class="language-json json"><code><span class="token punctuation">{</span>
@@ -919,8 +771,8 @@
 <p>项目为LLM应用生态提供了强大的代码质量控制基础设施，在规则管理、内容验证、提示增强等方面建立了行业标准，具有广阔的应用前景和技术价值。</p>
 <hr>
 <p><strong>文档版本</strong>: v1.4.0<br>
-<strong>最后更新</strong>: 2025-01-23<br>
-<strong>维护团队</strong>: CursorRules-MCP开发组</p>
+<strong>最后更新</strong>: 2025-06-23<br>
+<strong>维护团队</strong>: Mapoet</p>
 
       </div>
       

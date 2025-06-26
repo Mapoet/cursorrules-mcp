@@ -320,6 +320,72 @@ flowchart TD
     EE --> FF
 ```
 
+### 提示增强数据流
+
+```mermaid
+sequenceDiagram
+    participant Client as 客户端
+    participant API as API层
+    participant Engine as 规则引擎
+    participant DB as 规则数据库
+    participant Template as 模板系统
+    
+    Client->>API: 增强请求 (base_prompt, context)
+    API->>Engine: enhance_prompt()
+    
+    par 规则搜索
+        Engine->>DB: 搜索相关规则
+        DB-->>Engine: 返回规则列表
+    and 模板匹配
+        Engine->>Template: 获取适用模板
+        Template-->>Engine: 返回模板列表
+    end
+    
+    Engine->>Engine: 规则排序与筛选
+    Engine->>Engine: 规则注入处理
+    Engine->>Template: 应用模板渲染
+    Template-->>Engine: 返回增强结果
+    
+    Engine-->>API: 返回增强后的提示
+    API-->>Client: 格式化响应
+```
+
+### 统计分析数据流
+
+```mermaid
+sequenceDiagram
+    participant Client as 客户端
+    participant API as API层
+    participant Engine as 规则引擎
+    participant DB as 规则数据库
+    participant Cache as 缓存系统
+    
+    Client->>API: 统计请求 (resource_type, filters)
+    API->>Engine: get_statistics()
+    
+    Engine->>Cache: 检查统计缓存
+    
+    alt 缓存命中
+        Cache-->>Engine: 返回缓存结果
+    else 缓存未命中
+        Engine->>DB: 查询规则数据
+        DB-->>Engine: 返回规则集合
+        
+        par 多维度统计
+            Engine->>Engine: 语言分布统计
+            Engine->>Engine: 领域分布统计
+            Engine->>Engine: 标签使用统计
+            Engine->>Engine: 使用情况分析
+        end
+        
+        Engine->>Engine: 合并统计结果
+        Engine->>Cache: 更新统计缓存
+    end
+    
+    Engine-->>API: 返回统计报告
+    API-->>Client: 格式化响应
+```
+
 ---
 
 ## 🏛️ 类设计框架
@@ -508,135 +574,6 @@ classDiagram
 
 ---
 
-## 🔄 核心工作流程
-
-### 系统初始化流程
-
-```mermaid
-flowchart TD
-    A[系统启动] --> B[加载配置文件]
-    B --> C[初始化日志系统]
-    C --> D[创建数据库连接]
-    D --> E[加载规则引擎]
-    E --> F[构建规则索引]
-    F --> G[初始化验证器]
-    G --> H[加载提示模板]
-    H --> I[启动服务监听]
-    I --> J[系统就绪]
-    
-    style A fill:#e1f5fe
-    style J fill:#c8e6c9
-    style F fill:#fff3e0
-    style G fill:#fff3e0
-```
-
-### 规则匹配算法
-
-系统采用多维度评分算法进行规则匹配，确保返回最相关的规则集合：
-
-```python
-def _calculate_rule_score(self, rule: CursorRule, search_filter: SearchFilter) -> float:
-    """
-    多维度规则评分算法
-    
-    评分维度：
-    1. 语言匹配度 (权重: 0.3)
-    2. 领域匹配度 (权重: 0.25)  
-    3. 标签匹配度 (权重: 0.2)
-    4. 内容类型匹配度 (权重: 0.15)
-    5. 查询相关度 (权重: 0.1)
-    """
-    score = 0.0
-    
-    # 语言匹配评分
-    if search_filter.languages:
-        language_score = len(set(rule.languages) & set(search_filter.languages)) / len(search_filter.languages)
-        score += language_score * 0.3
-    
-    # 领域匹配评分  
-    if search_filter.domains:
-        domain_score = len(set(rule.domains) & set(search_filter.domains)) / len(search_filter.domains)
-        score += domain_score * 0.25
-        
-    # 标签匹配评分
-    if search_filter.tags:
-        tag_score = len(set(rule.tags) & set(search_filter.tags)) / len(search_filter.tags)
-        score += tag_score * 0.2
-        
-    return min(score, 1.0)
-```
-
-### 并发处理机制
-
-```mermaid
-graph LR
-    A[请求队列] --> B[请求分发器]
-    B --> C[工作进程1]
-    B --> D[工作进程2] 
-    B --> E[工作进程N]
-    
-    C --> F[规则引擎实例1]
-    D --> G[规则引擎实例2]
-    E --> H[规则引擎实例N]
-    
-    F --> I[共享数据库]
-    G --> I
-    H --> I
-    
-    F --> J[本地缓存1]
-    G --> K[本地缓存2]
-    H --> L[本地缓存N]
-```
-
----
-
-## 📈 性能优化策略
-
-### 缓存策略
-
-| 缓存层级 | 存储对象 | 生存时间 | 更新策略 |
-|----------|----------|----------|----------|
-| **L1 - 内存缓存** | 规则索引、搜索结果 | 1小时 | LRU淘汰 |
-| **L2 - Redis缓存** | 验证结果、统计数据 | 4小时 | TTL过期 |
-| **L3 - 文件缓存** | 编译结果、模板数据 | 24小时 | 定时清理 |
-
-### 数据库优化
-
-```sql
--- 核心查询索引优化
-CREATE INDEX idx_rules_language ON rules(languages);
-CREATE INDEX idx_rules_domain ON rules(domains);  
-CREATE INDEX idx_rules_tags ON rules(tags);
-CREATE INDEX idx_rules_active ON rules(active);
-CREATE INDEX idx_rules_composite ON rules(rule_type, active, usage_count);
-```
-
-### 异步处理优化
-
-```mermaid
-sequenceDiagram
-    participant Client as 客户端
-    participant Gateway as API网关
-    participant Worker as 工作进程
-    participant Cache as 缓存
-    participant DB as 数据库
-    
-    Client->>Gateway: 异步请求
-    Gateway->>Worker: 任务分发
-    
-    par 并行处理
-        Worker->>Cache: 检查缓存
-        Worker->>DB: 数据查询
-    end
-    
-    Worker->>Worker: 结果聚合
-    Worker->>Cache: 更新缓存
-    Worker->>Gateway: 返回结果
-    Gateway->>Client: 响应数据
-```
-
----
-
 ## 🔧 工具与验证器系统
 
 ### 验证器架构
@@ -695,107 +632,6 @@ classDiagram
 | **TypeScript** | TSLint | TypeScript特定检查 | `--format=json` |
 | **C++** | Clang-tidy | 静态分析、现代化建议 | `-checks=*` |
 | **Markdown** | Markdownlint | 文档格式、结构 | `--json` |
-
----
-
-## 🚀 部署与运维
-
-### 部署架构选项
-
-#### 单机部署
-```yaml
-# docker-compose.yml
-version: '3.8'
-services:
-  cursorrules-mcp:
-    build: .
-    ports:
-      - "8000:8000"
-    environment:
-      - CURSORRULES_WORKERS=4
-      - CURSORRULES_LOG_LEVEL=INFO
-    volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-```
-
-#### 集群部署
-```mermaid
-graph TB
-    subgraph "负载均衡层"
-        LB[Nginx/HAProxy]
-    end
-    
-    subgraph "应用层"
-        APP1[CursorRules实例1]
-        APP2[CursorRules实例2]
-        APP3[CursorRules实例3]
-    end
-    
-    subgraph "数据层"
-        DB[(PostgreSQL集群)]
-        CACHE[(Redis集群)]
-        FS[共享文件系统]
-    end
-    
-    LB --> APP1
-    LB --> APP2
-    LB --> APP3
-    
-    APP1 --> DB
-    APP1 --> CACHE
-    APP1 --> FS
-    
-    APP2 --> DB
-    APP2 --> CACHE  
-    APP2 --> FS
-    
-    APP3 --> DB
-    APP3 --> CACHE
-    APP3 --> FS
-```
-
-### 监控指标
-
-| 类别 | 指标名称 | 阈值 | 监控频率 |
-|------|----------|------|----------|
-| **系统性能** | CPU使用率 | < 80% | 1分钟 |
-| **系统性能** | 内存使用率 | < 85% | 1分钟 |
-| **系统性能** | 磁盘使用率 | < 90% | 5分钟 |
-| **应用性能** | 请求响应时间 | < 2秒 | 实时 |
-| **应用性能** | 请求成功率 | > 99% | 实时 |
-| **应用性能** | 并发连接数 | < 1000 | 1分钟 |
-| **业务指标** | 规则搜索QPS | 监控 | 1分钟 |
-| **业务指标** | 规则验证成功率 | > 95% | 5分钟 |
-| **业务指标** | 规则总数 | 监控 | 1小时 |
-| **业务指标** | 模板总数 | 监控 | 1小时 |
-| **业务指标** | 规则使用率 | > 50% | 1天 |
-| **业务指标** | 模板使用率 | > 30% | 1天 |
-
----
-
-## 🔮 技术发展规划
-
-### 短期目标 (v1.5.x - 6个月内)
-
-- **🔍 搜索增强**: 实现向量搜索、语义匹配
-- **🧠 智能推荐**: 基于使用历史的规则推荐算法
-- **📊 仪表盘**: Web管理界面与可视化面板
-- **🔗 集成扩展**: VSCode扩展、GitHub Actions支持
-
-### 中期目标 (v2.0.x - 1年内)
-
-- **🤖 AI驱动**: 集成大语言模型进行规则自动生成
-- **🌐 多租户**: 支持多团队、多项目隔离
-- **⚡ 实时协作**: WebSocket实时更新与协作编辑
-- **📱 移动端**: 移动应用与离线支持
-
-### 长期愿景 (v3.0.x+)
-
-- **🧬 自进化**: 基于反馈的规则库自主学习与优化
-- **🌍 生态系统**: 开放平台与第三方插件生态
-- **🔬 领域专精**: 垂直领域（金融、医疗、航空）定制化
-- **🚀 云原生**: Kubernetes原生支持与无服务器部署
 
 ---
 
@@ -890,178 +726,5 @@ CursorRules-MCP通过现代化的架构设计和技术选型，实现了一个�
 ---
 
 **文档版本**: v1.4.0  
-**最后更新**: 2025-01-23  
-**维护团队**: CursorRules-MCP开发组
-
-### 核心功能实现
-
-#### 1. 规则搜索 (search_rules)
-
-```mermaid
-flowchart TD
-    A[搜索请求] --> B[解析搜索参数]
-    B --> C[构建SearchFilter]
-    C --> D[应用过滤条件]
-    D --> E{匹配规则}
-    E -->|语言| F[语言匹配]
-    E -->|领域| G[领域匹配]
-    E -->|标签| H[标签匹配]
-    E -->|类型| I[类型匹配]
-    F & G & H & I --> J[计算相关度]
-    J --> K[排序结果]
-    K --> L[返回结果]
-```
-
-- **输入参数**:
-  - query: 搜索关键词
-  - languages: 编程语言列表
-  - domains: 应用领域列表
-  - tags: 标签列表
-  - content_types: 内容类型列表
-  - rule_types: 规则类型列表
-  - limit: 返回结果数量限制
-
-- **返回结果**:
-  - 规则列表（按相关度排序）
-  - 每个规则包含完整元数据
-  - 相关度评分
-  - 使用统计信息
-
-#### 2. 内容验证 (validate_content)
-
-```mermaid
-flowchart TD
-    A[验证请求] --> B[解析内容与上下文]
-    B --> C[获取适用规则]
-    C --> D[规则验证循环]
-    D --> E[执行规则验证]
-    E --> F[收集问题]
-    F --> G[生成建议]
-    G --> H[计算总分]
-    H --> I[返回结果]
-```
-
-- **输入参数**:
-  - content: 待验证内容
-  - file_path: 文件路径（可选）
-  - languages: 语言列表
-  - content_types: 内容类型列表
-  - domains: 领域列表
-  - output_mode: 输出模式
-
-- **输出模式**:
-  - result_only: 仅返回验证结果
-  - result_with_prompt: 包含验证提示
-  - result_with_rules: 包含规则详情
-  - result_with_template: 包含模板信息
-  - full: 返回全部信息
-
-#### 3. 提示增强 (enhance_prompt)
-
-```mermaid
-flowchart TD
-    A[基础提示] --> B[解析上下文]
-    B --> C[搜索相关规则]
-    C --> D[规则排序]
-    D --> E[注入规则指导]
-    E --> F[应用模板]
-    F --> G[返回增强提示]
-```
-
-- **输入参数**:
-  - base_prompt: 基础提示词
-  - languages: 编程语言列表
-  - domains: 应用领域列表
-  - tags: 标签列表
-  - max_rules: 最大规则数量
-
-- **返回结果**:
-  - enhanced_prompt: 增强后的提示
-  - applied_rules: 应用的规则列表
-  - quality_score: 质量评分
-
-#### 4. 统计信息 (get_statistics)
-
-```mermaid
-flowchart TD
-    A[统计请求] --> B{资源类型}
-    B -->|规则| C[规则统计]
-    B -->|模板| D[模板统计]
-    B -->|全部| E[全局统计]
-    
-    C --> F[计算规则指标]
-    D --> G[计算模板指标]
-    E --> H[合并统计]
-    
-    F --> I[规则分布]
-    G --> J[模板分布]
-    H --> K[返回结果]
-```
-
-- **统计维度**:
-  - 总数统计
-  - 语言分布
-  - 领域分布
-  - 类型分布
-  - 标签分布
-  - 使用情况
-  - 成功率
-
-- **过滤参数**:
-  - languages: 按语言过滤
-  - domains: 按领域过滤
-  - rule_types: 按规则类型过滤
-  - tags: 按标签过滤
-
-#### 5. 资源导入 (import_resource)
-
-```mermaid
-flowchart TD
-    A[导入请求] --> B{资源类型}
-    B -->|规则| C[规则导入]
-    B -->|模板| D[模板导入]
-    
-    C --> E[解析规则]
-    D --> F[解析模板]
-    
-    E --> G[验证规则]
-    F --> H[验证模板]
-    
-    G --> I[检查冲突]
-    H --> J[检查冲突]
-    
-    I -->|无冲突| K[保存规则]
-    I -->|有冲突| L{处理策略}
-    
-    J -->|无冲突| M[保存模板]
-    J -->|有冲突| N{处理策略}
-    
-    L -->|merge=true| O[合并规则]
-    L -->|merge=false| P[报错]
-    
-    N -->|mode=append| Q[追加模板]
-    N -->|mode=replace| R[替换模板]
-    
-    O --> K
-    Q & R --> M
-    
-    K & M --> S[更新索引]
-    S --> T[返回结果]
-```
-
-- **导入参数**:
-  - content: 资源内容
-  - type: 资源类型（rules/templates）
-  - format: 文件格式
-  - validate: 是否验证
-  - merge: 规则合并策略
-  - mode: 模板导入模式
-
-- **支持格式**:
-  - Markdown（推荐）
-  - YAML
-  - JSON（仅规则）
-
-- **冲突处理**:
-  - 规则：merge 策略
-  - 模板：append/replace 模式
+**最后更新**: 2025-06-23  
+**维护团队**: Mapoet
