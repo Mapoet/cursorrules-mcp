@@ -262,38 +262,62 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    A[导入请求] --> B{数据源类型}
+    A[导入请求] --> B{资源类型}
     
-    B -->|文件路径| C[读取文件内容]
-    B -->|直接内容| D[解析内容格式]
+    B -->|规则| C[UnifiedRuleImporter]
+    B -->|模板| D[RuleEngine.load_prompt_templates]
     
-    C --> D
-    D --> E{格式类型}
+    C --> E[解析文件格式]
+    D --> F[解析模板文件]
     
-    E -->|Markdown| F[MarkdownRuleParser]
-    E -->|YAML| G[YamlRuleParser]
-    E -->|JSON| H[JsonRuleParser]
+    E --> G{格式类型}
+    F --> H{格式类型}
     
-    F --> I[解析规则结构]
-    G --> I
-    H --> I
+    G -->|Markdown| I[MarkdownRuleParser]
+    G -->|YAML| J[YamlRuleParser]
+    G -->|JSON| K[JsonRuleParser]
     
-    I --> J[验证规则完整性]
-    J --> K{验证通过?}
+    H -->|Markdown| L[解析Markdown模板]
+    H -->|YAML| M[解析YAML模板]
     
-    K -->|是| L[检查重复ID]
-    K -->|否| M[返回错误信息]
+    I --> N[解析规则结构]
+    J --> N
+    K --> N
     
-    L --> N{ID冲突?}
-    N -->|是,merge=true| O[合并规则]
-    N -->|是,merge=false| P[报告冲突]
-    N -->|否| Q[保存到数据库]
+    L --> O[创建PromptTemplate]
+    M --> O
     
-    O --> Q
-    Q --> R[更新索引]
-    R --> S[返回成功结果]
+    N --> P[验证规则完整性]
+    O --> Q[验证模板完整性]
     
-    P --> M
+    P --> R{验证通过?}
+    Q --> S{验证通过?}
+    
+    R -->|是| T[检查规则ID冲突]
+    S -->|是| U[检查模板ID冲突]
+    
+    R -->|否| V[返回错误信息]
+    S -->|否| V
+    
+    T --> W{ID冲突?}
+    U --> X{ID冲突?}
+    
+    W -->|是,merge=true| Y[合并规则]
+    W -->|是,merge=false| V
+    W -->|否| Z[保存到数据库]
+    
+    X -->|是,mode=append| AA[追加模板]
+    X -->|是,mode=replace| BB[替换模板]
+    X -->|否| CC[添加新模板]
+    
+    Y --> Z
+    AA --> DD[更新模板索引]
+    BB --> DD
+    CC --> DD
+    
+    Z --> EE[更新规则索引]
+    DD --> FF[返回成功结果]
+    EE --> FF
 ```
 
 ---
@@ -323,6 +347,19 @@ classDiagram
         +active: bool
         +usage_count: int
         +success_rate: float
+    }
+    
+    class PromptTemplate {
+        +template_id: str
+        +name: str
+        +template: str
+        +domains: List[str]
+        +languages: List[str]
+        +content_types: List[str]
+        +description: str
+        +priority: int
+        +source: str
+        +render(rules: str, content: str): str
     }
     
     class RuleCondition {
@@ -420,6 +457,23 @@ MCPHttpServer采用**组合模式**构建REST API，通过FastAPI提供HTTP/JSON
 
 ```mermaid
 classDiagram
+    class RuleEngine {
+        +rules_dir: str
+        +templates_dir: str
+        +rules: Dict[str, CursorRule]
+        +prompt_templates: Dict[str, PromptTemplate]
+        +database: RuleDatabase
+        +validation_tools: Dict[str, List[str]]
+        
+        +initialize() async
+        +load_rules() async
+        +load_prompt_templates(files: List[str], mode: str)
+        +search_rules(filter: SearchFilter) async
+        +validate_content(content: str, context: MCPContext) async
+        +enhance_prompt(prompt: str, context: MCPContext) async
+        +get_statistics(resource_type: str) dict
+    }
+    
     class RuleDatabase {
         +data_dir: str
         +rules: Dict[str, CursorRule]
@@ -447,6 +501,7 @@ classDiagram
         +merge_rules(base: CursorRule, incoming: CursorRule) CursorRule
     }
     
+    RuleEngine --> RuleDatabase
     RuleDatabase --> RuleVersionManager
     RuleDatabase --> RuleConflictDetector
 ```
@@ -711,7 +766,11 @@ graph TB
 | **应用性能** | 请求成功率 | > 99% | 实时 |
 | **应用性能** | 并发连接数 | < 1000 | 1分钟 |
 | **业务指标** | 规则搜索QPS | 监控 | 1分钟 |
-| **业务指标** | 验证任务成功率 | > 95% | 5分钟 |
+| **业务指标** | 规则验证成功率 | > 95% | 5分钟 |
+| **业务指标** | 规则总数 | 监控 | 1小时 |
+| **业务指标** | 模板总数 | 监控 | 1小时 |
+| **业务指标** | 规则使用率 | > 50% | 1天 |
+| **业务指标** | 模板使用率 | > 30% | 1天 |
 
 ---
 
@@ -833,3 +892,176 @@ CursorRules-MCP通过现代化的架构设计和技术选型，实现了一个�
 **文档版本**: v1.4.0  
 **最后更新**: 2025-01-23  
 **维护团队**: CursorRules-MCP开发组
+
+### 核心功能实现
+
+#### 1. 规则搜索 (search_rules)
+
+```mermaid
+flowchart TD
+    A[搜索请求] --> B[解析搜索参数]
+    B --> C[构建SearchFilter]
+    C --> D[应用过滤条件]
+    D --> E{匹配规则}
+    E -->|语言| F[语言匹配]
+    E -->|领域| G[领域匹配]
+    E -->|标签| H[标签匹配]
+    E -->|类型| I[类型匹配]
+    F & G & H & I --> J[计算相关度]
+    J --> K[排序结果]
+    K --> L[返回结果]
+```
+
+- **输入参数**:
+  - query: 搜索关键词
+  - languages: 编程语言列表
+  - domains: 应用领域列表
+  - tags: 标签列表
+  - content_types: 内容类型列表
+  - rule_types: 规则类型列表
+  - limit: 返回结果数量限制
+
+- **返回结果**:
+  - 规则列表（按相关度排序）
+  - 每个规则包含完整元数据
+  - 相关度评分
+  - 使用统计信息
+
+#### 2. 内容验证 (validate_content)
+
+```mermaid
+flowchart TD
+    A[验证请求] --> B[解析内容与上下文]
+    B --> C[获取适用规则]
+    C --> D[规则验证循环]
+    D --> E[执行规则验证]
+    E --> F[收集问题]
+    F --> G[生成建议]
+    G --> H[计算总分]
+    H --> I[返回结果]
+```
+
+- **输入参数**:
+  - content: 待验证内容
+  - file_path: 文件路径（可选）
+  - languages: 语言列表
+  - content_types: 内容类型列表
+  - domains: 领域列表
+  - output_mode: 输出模式
+
+- **输出模式**:
+  - result_only: 仅返回验证结果
+  - result_with_prompt: 包含验证提示
+  - result_with_rules: 包含规则详情
+  - result_with_template: 包含模板信息
+  - full: 返回全部信息
+
+#### 3. 提示增强 (enhance_prompt)
+
+```mermaid
+flowchart TD
+    A[基础提示] --> B[解析上下文]
+    B --> C[搜索相关规则]
+    C --> D[规则排序]
+    D --> E[注入规则指导]
+    E --> F[应用模板]
+    F --> G[返回增强提示]
+```
+
+- **输入参数**:
+  - base_prompt: 基础提示词
+  - languages: 编程语言列表
+  - domains: 应用领域列表
+  - tags: 标签列表
+  - max_rules: 最大规则数量
+
+- **返回结果**:
+  - enhanced_prompt: 增强后的提示
+  - applied_rules: 应用的规则列表
+  - quality_score: 质量评分
+
+#### 4. 统计信息 (get_statistics)
+
+```mermaid
+flowchart TD
+    A[统计请求] --> B{资源类型}
+    B -->|规则| C[规则统计]
+    B -->|模板| D[模板统计]
+    B -->|全部| E[全局统计]
+    
+    C --> F[计算规则指标]
+    D --> G[计算模板指标]
+    E --> H[合并统计]
+    
+    F --> I[规则分布]
+    G --> J[模板分布]
+    H --> K[返回结果]
+```
+
+- **统计维度**:
+  - 总数统计
+  - 语言分布
+  - 领域分布
+  - 类型分布
+  - 标签分布
+  - 使用情况
+  - 成功率
+
+- **过滤参数**:
+  - languages: 按语言过滤
+  - domains: 按领域过滤
+  - rule_types: 按规则类型过滤
+  - tags: 按标签过滤
+
+#### 5. 资源导入 (import_resource)
+
+```mermaid
+flowchart TD
+    A[导入请求] --> B{资源类型}
+    B -->|规则| C[规则导入]
+    B -->|模板| D[模板导入]
+    
+    C --> E[解析规则]
+    D --> F[解析模板]
+    
+    E --> G[验证规则]
+    F --> H[验证模板]
+    
+    G --> I[检查冲突]
+    H --> J[检查冲突]
+    
+    I -->|无冲突| K[保存规则]
+    I -->|有冲突| L{处理策略}
+    
+    J -->|无冲突| M[保存模板]
+    J -->|有冲突| N{处理策略}
+    
+    L -->|merge=true| O[合并规则]
+    L -->|merge=false| P[报错]
+    
+    N -->|mode=append| Q[追加模板]
+    N -->|mode=replace| R[替换模板]
+    
+    O --> K
+    Q & R --> M
+    
+    K & M --> S[更新索引]
+    S --> T[返回结果]
+```
+
+- **导入参数**:
+  - content: 资源内容
+  - type: 资源类型（rules/templates）
+  - format: 文件格式
+  - validate: 是否验证
+  - merge: 规则合并策略
+  - mode: 模板导入模式
+
+- **支持格式**:
+  - Markdown（推荐）
+  - YAML
+  - JSON（仅规则）
+
+- **冲突处理**:
+  - 规则：merge 策略
+  - 模板：append/replace 模式

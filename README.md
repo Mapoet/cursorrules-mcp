@@ -34,6 +34,130 @@
 - 📈 **统计分析** - 使用模式分析与性能监控
 - 🧠 **自适应学习** - 根据使用反馈持续优化规则库
 
+### 1. 规则搜索
+
+```bash
+# CLI示例
+cursorrules-mcp search --query "类型检查" --languages python --domains scientific
+cursorrules-mcp search --tags "performance,security" --limit 5
+```
+
+```json
+// MCP示例
+{
+  "method": "search_rules",
+  "params": {
+    "query": "类型检查",
+    "languages": "python,cpp",
+    "domains": "scientific,web",
+    "tags": "performance,security",
+    "content_types": "code,documentation",
+    "rule_types": "style,content",
+    "limit": 5
+  },
+  "id": 1
+}
+```
+
+### 2. 内容验证
+
+```bash
+# CLI示例
+cursorrules-mcp validate "代码内容" --languages python --output_mode detailed
+cursorrules-mcp validate --file mycode.py --domains scientific
+```
+
+```json
+// MCP示例
+{
+  "method": "validate_content",
+  "params": {
+    "content": "代码内容",
+    "file_path": "mycode.py",
+    "languages": "python",
+    "domains": "scientific",
+    "content_types": "code",
+    "output_mode": "full"
+  },
+  "id": 1
+}
+```
+
+### 3. 提示增强
+
+```bash
+# CLI示例
+cursorrules-mcp enhance "基础提示" --languages python --max_rules 3
+cursorrules-mcp enhance --file prompt.txt --domains web,ai
+```
+
+```json
+// MCP示例
+{
+  "method": "enhance_prompt",
+  "params": {
+    "base_prompt": "基础提示",
+    "languages": "python,typescript",
+    "domains": "web,ai",
+    "tags": "best_practice,security",
+    "max_rules": 5
+  },
+  "id": 1
+}
+```
+
+### 4. 统计信息
+
+```bash
+# CLI示例
+cursorrules-mcp stats --resource_type all
+cursorrules-mcp stats --resource_type rules --languages python,cpp
+```
+
+```json
+// MCP示例
+{
+  "method": "get_statistics",
+  "params": {
+    "resource_type": "all",
+    "languages": "python,cpp",
+    "domains": "scientific,web",
+    "rule_types": "style,content",
+    "tags": "performance,security"
+  },
+  "id": 1
+}
+```
+
+### 5. 资源导入
+
+```bash
+# CLI示例
+# 导入规则
+cursorrules-mcp import rules/ --type rules --recursive --validate
+cursorrules-mcp import my_rule.md --type rules --merge
+
+# 导入模板
+cursorrules-mcp import templates/ --type templates --mode append
+cursorrules-mcp import new_templates/ --type templates --mode replace
+```
+
+```json
+// MCP示例
+{
+  "method": "import_resource",
+  "params": {
+    "content": "规则或模板内容",
+    "type": "rules",  // 或 "templates"
+    "format": "markdown",
+    "validate": true,
+    "merge": false,
+    "mode": "append"  // 仅对模板有效
+  },
+  "id": 1
+}
+```
+
 ## 🛠️ 快速开始
 
 ### 系统要求
@@ -96,21 +220,29 @@ python scripts/cursorrules_cli.py --help
 cursorrules-mcp --help
 ```
 
-## 📥 规则与模板导入
+## 🎯 规则与模板导入
 
 ### 支持格式
-- Markdown（推荐，支持元数据与正文分离）
+
+#### 规则格式
+- Markdown（支持元数据与正文分离）
 - YAML
 - JSON
+
+#### 模板格式
+- Markdown（推荐，支持模板内容与元数据分离）
+- YAML（支持完整的模板元数据）
 
 ### CLI 导入示例
 ```bash
 # 导入规则文件
-cursorrules-mcp import my_rule.md --format markdown
-# 批量导入目录
-cursorrules-mcp import rules/ --recursive --validate
+cursorrules-mcp import my_rule.md --type rules
+# 批量导入规则目录
+cursorrules-mcp import rules/ --type rules --recursive --validate
 # 导入模板文件
-cursorrules-mcp import my_template.yaml --type templates
+cursorrules-mcp import templates/ --type templates --mode append
+# 替换现有模板
+cursorrules-mcp import new_templates/ --type templates --mode replace
 ```
 
 ### HTTP/MCP 导入示例
@@ -120,7 +252,8 @@ cursorrules-mcp import my_template.yaml --type templates
   "params": {
     "content": "规则或模板内容...",
     "format": "markdown",
-    "type": "rules"  // 或 "templates"
+    "type": "rules",  // 或 "templates"
+    "mode": "append"  // 仅对模板有效，可选值: "append", "replace"
   },
   "id": 1
 }
@@ -185,8 +318,14 @@ python -m src.cursorrules_mcp.cli validate_content 'def foo(): pass' --languages
 
 ### CLI 统计查询
 ```bash
-cursorrules-mcp stats --resource_type templates --languages python
+# 查询所有规则统计
+cursorrules-mcp stats --resource_type rules
+# 查询所有模板统计
+cursorrules-mcp stats --resource_type templates
+# 查询所有资源统计
 cursorrules-mcp stats --resource_type all
+# 按语言过滤规则统计
+cursorrules-mcp stats --resource_type rules --languages python,cpp
 ```
 
 ### HTTP/MCP 统计示例
@@ -194,16 +333,26 @@ cursorrules-mcp stats --resource_type all
 {
   "method": "get_statistics",
   "params": {
-    "resource_type": "all",
-    "languages": "python,cpp"
+    "resource_type": "all",  // "rules", "templates", "all"
+    "languages": "python,cpp",
+    "domains": "scientific,web",
+    "rule_types": "style,content",  // 仅对规则有效
+    "tags": "pep8,performance"
   },
   "id": 1
 }
 ```
 
 ### 参数说明
-- resource_type (str): 统计对象类型，支持 rules（规则）、templates（模板）、all（全部），默认 rules。
-- languages, domains, rule_types, tags: 过滤参数，模板统计时部分字段可忽略。
+- resource_type (str): 统计对象类型，支持：
+  - rules（规则）
+  - templates（模板）
+  - all（全部）
+  默认值为 rules
+- languages: 按语言过滤，逗号分隔
+- domains: 按领域过滤，逗号分隔
+- rule_types: 按规则类型过滤（仅对规则有效），逗号分隔
+- tags: 按标签过滤，逗号分隔
 
 ### 返回结构示例
 ```json
@@ -214,13 +363,17 @@ cursorrules-mcp stats --resource_type all
     "by_language": {"python": 100, "cpp": 23},
     "by_domain": {"scientific": 80, "web": 43},
     "by_type": {"style": 60, "content": 63},
-    "by_tag": {"pep8": 40, "performance": 20}
+    "by_tag": {"pep8": 40, "performance": 20},
+    "active_rules": 120,
+    "average_success_rate": 0.95
   },
   "templates_stats": {
     "total": 45,
     "by_language": {"python": 30, "markdown": 15},
-    "by_group": {"default": 20, "advanced": 25},
-    "by_priority": {"high": 10, "normal": 35}
+    "by_domain": {"scientific": 25, "web": 20},
+    "by_priority": {"high": 10, "normal": 35},
+    "active_templates": 42,
+    "usage_count": 1250
   }
 }
 ```
@@ -297,10 +450,6 @@ cursorrules-mcp stats
 
 ### 核心文档
 - 📖 **[技术架构报告](docs/techs.md)** - 完整的技术架构、设计模式与实现细节
-- 📥 **[导入功能指南](docs/IMPORT_GUIDE.md)** - 规则与模板导入详细说明
-- 📊 **[统计功能指南](docs/IMPORT_AND_STATISTICS_GUIDE.md)** - 数据分析与统计功能
-- 🌐 **[HTTP服务器指南](docs/HTTP_SERVER_GUIDE.md)** - Web API接口使用说明
-- 🚀 **[开发计划](docs/development_plan.md)** - 项目路线图与发展规划
 
 ### 技术支持
 - 🐛 **问题报告**: [GitHub Issues](https://github.com/your-org/cursorrules-mcp/issues)
