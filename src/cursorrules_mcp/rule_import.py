@@ -552,7 +552,7 @@ class YamlRuleParser(RuleParser):
             db: 规则数据库实例
         """
         super().__init__(db)
-        
+    
     def can_parse(self, file_path: Path) -> bool:
         """检查是否为YAML文件"""
         return file_path.suffix.lower() in ['.yaml', '.yml']
@@ -609,7 +609,7 @@ class YamlRuleParser(RuleParser):
                                  "1. 设置 append_mode=True\n"
                                  "2. 分多次导入完整内容\n"
                                  "3. 最后一次导入时设置 append_mode=False 表示导入完成")
-
+            
             # 支持单个规则和规则列表
             if isinstance(data, dict):
                 rule = self._create_rule_from_yaml(data, file_path)
@@ -936,9 +936,9 @@ class UnifiedRuleImporter:
         if self.save_to_database and self.database:
             for rule in rules:
                 # 初始化保存路径
-                rule_filename = f"{rule.rule_id.lower().replace('-', '_')}.yaml"
+                    rule_filename = f"{rule.rule_id.lower().replace('-', '_')}.yaml"
                 save_path = Path(self.database.data_dir) / "imported" / rule_filename
-                
+                    
                 try:
                     # 检查是否已存在
                     exists = rule.rule_id in self.database.rules
@@ -946,7 +946,7 @@ class UnifiedRuleImporter:
                     if exists:
                         if merge is True:
                             # 允许覆盖
-                            await self.database.add_rule(rule, save_path)
+                    await self.database.add_rule(rule, save_path)
                             self._log_success(str(save_path), f"覆盖已存在规则: {rule.rule_id}")
                         elif interactive:
                             # 命令行交互

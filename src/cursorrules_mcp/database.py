@@ -391,10 +391,10 @@ class RuleDatabase:
             if append_mode and file_path.exists():
                 with open(file_path, 'r', encoding='utf-8') as f:
                     existing_content = yaml.safe_load(f)
-            
+
             # 转换规则为字典
             rule_dict = self._convert_rule_for_serialization(rule)
-            
+
             # 在追加模式下合并内容
             if existing_content and append_mode:
                 rule_dict = self._merge_rule_dicts(existing_content, rule_dict)
@@ -441,7 +441,7 @@ class RuleDatabase:
 
             # 保存为YAML文件，设置更大的行宽以避免自动换行
             with open(file_path, 'w', encoding='utf-8') as f:
-                yaml.dump(
+                    yaml.dump(
                     rule_dict,
                     f,
                     allow_unicode=True,

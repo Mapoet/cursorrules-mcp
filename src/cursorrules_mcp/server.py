@@ -455,31 +455,31 @@ class CursorRulesMCPServer:
                 # 只允许 content
                 if not content:
                     return "❌ 必须通过 content 上传规则内容，不支持 file_path 参数"
-                if format == "auto":
-                    if content.startswith('---'):
-                        format = "markdown"
-                    elif content.strip().startswith('{'):
-                        format = "json"
-                    else:
-                        format = "yaml"
-                import tempfile
-                import os
-                try:
-                    ext_map = {'markdown': '.md', 'yaml': '.yaml', 'json': '.json'}
-                    ext = ext_map.get(format, '.txt')
-                    with tempfile.NamedTemporaryFile(mode='w', suffix=ext, delete=False, encoding='utf-8') as temp_file:
-                        temp_file.write(content)
-                        temp_path = temp_file.name
-                    rules = await importer.import_rules_async([temp_path])
-                    os.unlink(temp_path)
-                    await self.rule_engine.reload()
-                    if rules:
-                        rule_ids = ', '.join(rule.rule_id for rule in rules)
-                        return f"✅ 成功导入 {len(rules)} 条规则到数据库\n规则ID: {rule_ids}"
-                    else:
-                        return "⚠️ 未导入任何规则，请检查内容格式。"
-                except Exception as e:
-                    return f"❌ 导入失败: {str(e)}"
+                    if format == "auto":
+                        if content.startswith('---'):
+                            format = "markdown"
+                        elif content.strip().startswith('{'):
+                            format = "json"
+                        else:
+                            format = "yaml"
+                    import tempfile
+                    import os
+                    try:
+                        ext_map = {'markdown': '.md', 'yaml': '.yaml', 'json': '.json'}
+                        ext = ext_map.get(format, '.txt')
+                        with tempfile.NamedTemporaryFile(mode='w', suffix=ext, delete=False, encoding='utf-8') as temp_file:
+                            temp_file.write(content)
+                            temp_path = temp_file.name
+                        rules = await importer.import_rules_async([temp_path])
+                        os.unlink(temp_path)
+                        await self.rule_engine.reload()
+                        if rules:
+                            rule_ids = ', '.join(rule.rule_id for rule in rules)
+                            return f"✅ 成功导入 {len(rules)} 条规则到数据库\n规则ID: {rule_ids}"
+                        else:
+                            return "⚠️ 未导入任何规则，请检查内容格式。"
+                    except Exception as e:
+                        return f"❌ 导入失败: {str(e)}"
             except Exception as e:
                 logger.error(f"导入规则时发生错误: {e}")
                 return f"❌ 导入失败: {str(e)}"

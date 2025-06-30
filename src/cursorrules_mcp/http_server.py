@@ -17,9 +17,9 @@ from pathlib import Path
 import uuid
 from datetime import datetime
 from fastapi import FastAPI, Request, Response, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
-import uvicorn
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.responses import StreamingResponse
+    import uvicorn
 from pydantic import BaseModel, HttpUrl
 from .engine import RuleEngine
 from .models import (
@@ -495,7 +495,7 @@ class MCPHttpServer:
                             "description": "资源类型，可选：rules（规则）、templates（模板），默认auto（自动识别）。",
                             "enum": ["rules", "templates", "auto"],
                             "default": "auto"
-                        }
+                    }
                     },
                     "required": ["content"],
                     "examples": [
@@ -503,7 +503,7 @@ class MCPHttpServer:
                         {"file_path": "/absolute/path/to/rule.yaml", "format": "yaml", "type": "rules"},
                         {"content": "# 模板内容...", "format": "markdown", "type": "templates"},
                         {"file_path": "/absolute/path/to/template.yaml", "format": "yaml", "type": "templates"}
-                    ]
+        ]
                 }
             }
         ]
@@ -645,7 +645,7 @@ class MCPHttpServer:
         # 执行验证
         return await self.rule_engine.validate_content(
             content=content,
-            file_path=file_path,
+                file_path=file_path,
             languages=languages,
             content_types=content_types,
             domains=domains,
@@ -748,10 +748,10 @@ class MCPHttpServer:
                     temp_file.write(content)
                     temp_path = temp_file.name
                 try:
-                    importer = UnifiedRuleImporter(save_to_database=True)
+                importer = UnifiedRuleImporter(save_to_database=True)
                     rules = await importer.import_rules_async([temp_path], merge=merge)
                     await self.rule_engine.reload()
-                    
+                
                     # 检查导入日志中的错误
                     import_log = importer.get_import_summary()
                     if import_log['failed_imports'] > 0:
@@ -776,28 +776,28 @@ class MCPHttpServer:
                                 "failed_imports": import_log['failed_imports']
                             }
                         }
-                    
-                    return {
-                        "success": True,
-                        "message": f"✅ 成功导入 {len(rules)} 条规则到数据库",
+                
+                return {
+                    "success": True,
+                    "message": f"✅ 成功导入 {len(rules)} 条规则到数据库",
                         "imported": len(rules),
                         "resource_type": "rules",
                         "details": {
                             "total_files": import_log['total_files'],
                             "successful_imports": import_log['successful_imports'],
                             "failed_imports": import_log['failed_imports']
-                        }
+                }
                     }
                 finally:
                     if os.path.exists(temp_path):
                         os.remove(temp_path)
         except Exception as e:
-            return {
-                "success": False,
+                return {
+                    "success": False,
                 "message": f"❌ 导入资源失败: {e}",
                 "imported": 0,
                 "resource_type": type or "auto"
-            }
+                }
     
     async def _list_all_rules(self) -> str:
         """列出所有规则"""
